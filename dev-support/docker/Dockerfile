@@ -202,4 +202,3 @@ ENV FORREST_HOME=/opt/apache-forrest
 ADD hadoop_env_checks.sh /root/hadoop_env_checks.sh
 RUN chmod 755 /root/hadoop_env_checks.sh
 RUN echo '~/hadoop_env_checks.sh' >> /root/.bashrc
-
