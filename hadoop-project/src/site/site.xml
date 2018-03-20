@@ -106,7 +106,6 @@
       <item name="Upgrade Domain" href="hadoop-project-dist/hadoop-hdfs/HdfsUpgradeDomain.html"/>
       <item name="DataNode Admin" href="hadoop-project-dist/hadoop-hdfs/HdfsDataNodeAdminGuide.html"/>
       <item name="Router Federation" href="hadoop-project-dist/hadoop-hdfs-rbf/HDFSRouterFederation.html"/>
-      <item name="Provided Storage" href="hadoop-project-dist/hadoop-hdfs/HdfsProvidedStorage.html"/>
     </menu>
 
     <menu name="MapReduce" inherit="top">
