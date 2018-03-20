@@ -20,11 +20,11 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>org.apache.hadoop</groupId>
     <artifactId>hadoop-project-dist</artifactId>
-    <version>3.1.1</version>
+    <version>3.2.0-SNAPSHOT</version>
     <relativePath>../../hadoop-project-dist</relativePath>
   </parent>
   <artifactId>hadoop-hdfs-rbf</artifactId>
-  <version>3.1.1</version>
+  <version>3.2.0-SNAPSHOT</version>
   <description>Apache Hadoop HDFS-RBF</description>
   <name>Apache Hadoop HDFS-RBF</name>
   <packaging>jar</packaging>
@@ -167,7 +167,6 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <configuration>
               <tasks>
                 <copy file="src/main/resources/hdfs-rbf-default.xml" todir="src/site/resources"/>
-                <copy file="src/main/xsl/configuration.xsl" todir="src/site/resources"/>
               </tasks>
             </configuration>
           </execution>

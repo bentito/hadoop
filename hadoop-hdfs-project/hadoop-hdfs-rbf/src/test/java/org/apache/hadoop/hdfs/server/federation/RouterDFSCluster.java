@@ -20,7 +20,6 @@ package org.apache.hadoop.hdfs.server.federation;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_HA_NAMENODES_KEY_PREFIX;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_HA_NAMENODE_ID_KEY;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_INTERNAL_NAMESERVICES_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_HTTP_ADDRESS_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_RPC_ADDRESS_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_RPC_BIND_HOST_KEY;
@@ -43,7 +42,6 @@ import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_
 import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_ROUTER_MONITOR_NAMENODE;
 import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_ROUTER_RPC_ADDRESS_KEY;
 import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_ROUTER_RPC_BIND_HOST_KEY;
-import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.DFS_ROUTER_SAFEMODE_ENABLE;
 import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.FEDERATION_FILE_RESOLVER_CLIENT_CLASS;
 import static org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys.FEDERATION_NAMENODE_RESOLVER_CLIENT_CLASS;
 import static org.junit.Assert.assertEquals;
@@ -77,7 +75,6 @@ import org.apache.hadoop.hdfs.MiniDFSNNTopology.NNConf;
 import org.apache.hadoop.hdfs.MiniDFSNNTopology.NSConf;
 import org.apache.hadoop.hdfs.server.federation.resolver.ActiveNamenodeResolver;
 import org.apache.hadoop.hdfs.server.federation.resolver.FederationNamenodeServiceState;
-import org.apache.hadoop.hdfs.server.federation.resolver.FederationNamespaceInfo;
 import org.apache.hadoop.hdfs.server.federation.resolver.FileSubclusterResolver;
 import org.apache.hadoop.hdfs.server.federation.resolver.NamenodeStatusReport;
 import org.apache.hadoop.hdfs.server.federation.router.Router;
@@ -94,16 +91,15 @@ import org.slf4j.LoggerFactory;
 /**
  * Test utility to mimic a federated HDFS cluster with multiple routers.
  */
-public class MiniRouterDFSCluster {
+public class RouterDFSCluster {
 
   private static final Logger LOG =
-      LoggerFactory.getLogger(MiniRouterDFSCluster.class);
+      LoggerFactory.getLogger(RouterDFSCluster.class);
 
   public static final String TEST_STRING = "teststring";
   public static final String TEST_DIR = "testdir";
   public static final String TEST_FILE = "testfile";
 
-  private static final Random RND = new Random();
 
   /** Nameservices in the federated cluster. */
   private List<String> nameservices;
@@ -132,9 +128,6 @@ public class MiniRouterDFSCluster {
   private Configuration routerOverrides;
   /** Namenode configuration overrides. */
   private Configuration namenodeOverrides;
-
-  /** If the DNs are shared. */
-  private boolean sharedDNs = true;
 
 
   /**
@@ -185,15 +178,6 @@ public class MiniRouterDFSCluster {
       return this.fileContext;
     }
 
-    public URI getFileSystemURI() {
-      return fileSystemUri;
-    }
-
-    public String getHttpAddress() {
-      InetSocketAddress httpAddress = router.getHttpServerAddress();
-      return NetUtils.getHostPortString(httpAddress);
-    }
-
     public void initRouter() throws URISyntaxException {
       // Store the bound points for the router interfaces
       InetSocketAddress rpcAddress = router.getRpcServerAddress();
@@ -240,20 +224,12 @@ public class MiniRouterDFSCluster {
       return adminClient;
     }
 
-    public void resetAdminClient() {
-      adminClient = null;
-    }
-
     public DFSClient getClient() throws IOException, URISyntaxException {
       if (client == null) {
         LOG.info("Connecting to router at {}", fileSystemUri);
         client = new DFSClient(fileSystemUri, conf);
       }
       return client;
-    }
-
-    public Configuration getConf() {
-      return conf;
     }
   }
 
@@ -367,14 +343,9 @@ public class MiniRouterDFSCluster {
       }
       return suffix;
     }
-
-    public Configuration getConf() {
-      return conf;
-    }
   }
 
-  public MiniRouterDFSCluster(
-      boolean ha, int numNameservices, int numNamenodes,
+  public RouterDFSCluster(boolean ha, int numNameservices, int numNamenodes,
       long heartbeatInterval, long cacheFlushInterval) {
     this.highAvailability = ha;
     this.heartbeatInterval = heartbeatInterval;
@@ -382,13 +353,12 @@ public class MiniRouterDFSCluster {
     configureNameservices(numNameservices, numNamenodes);
   }
 
-  public MiniRouterDFSCluster(boolean ha, int numNameservices) {
+  public RouterDFSCluster(boolean ha, int numNameservices) {
     this(ha, numNameservices, 2,
         DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS);
   }
 
-  public MiniRouterDFSCluster(
-      boolean ha, int numNameservices, int numNamenodes) {
+  public RouterDFSCluster(boolean ha, int numNameservices, int numNamenodes) {
     this(ha, numNameservices, numNamenodes,
         DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS);
   }
@@ -510,9 +480,6 @@ public class MiniRouterDFSCluster {
     conf.setClass(FEDERATION_FILE_RESOLVER_CLIENT_CLASS,
         MockResolver.class, FileSubclusterResolver.class);
 
-    // Disable safemode on startup
-    conf.setBoolean(DFS_ROUTER_SAFEMODE_ENABLE, false);
-
     // Set the nameservice ID for the default NN monitor
     conf.set(DFS_NAMESERVICE_ID, nsId);
     if (nnId != null) {
@@ -570,13 +537,6 @@ public class MiniRouterDFSCluster {
     this.numDatanodesPerNameservice = num;
   }
 
-  /**
-   * Set the DNs to belong to only one subcluster.
-   */
-  public void setIndependentDNs() {
-    this.sharedDNs = false;
-  }
-
   public String getNameservicesKey() {
     StringBuilder sb = new StringBuilder();
     for (String nsId : this.nameservices) {
@@ -589,7 +549,8 @@ public class MiniRouterDFSCluster {
   }
 
   public String getRandomNameservice() {
-    int randIndex = RND.nextInt(nameservices.size());
+    Random r = new Random();
+    int randIndex = r.nextInt(nameservices.size());
     return nameservices.get(randIndex);
   }
 
@@ -696,33 +657,15 @@ public class MiniRouterDFSCluster {
       }
       topology.setFederation(true);
 
-      // Set independent DNs across subclusters
-      int numDNs = nameservices.size() * numDatanodesPerNameservice;
-      Configuration[] dnConfs = null;
-      if (!sharedDNs) {
-        dnConfs = new Configuration[numDNs];
-        int dnId = 0;
-        for (String nsId : nameservices) {
-          Configuration subclusterConf = new Configuration();
-          subclusterConf.set(DFS_INTERNAL_NAMESERVICES_KEY, nsId);
-          for (int i = 0; i < numDatanodesPerNameservice; i++) {
-            dnConfs[dnId] = subclusterConf;
-            dnId++;
-          }
-        }
-      }
-
       // Start mini DFS cluster
       String ns0 = nameservices.get(0);
       Configuration nnConf = generateNamenodeConfiguration(ns0);
       if (overrideConf != null) {
         nnConf.addResource(overrideConf);
       }
-
       cluster = new MiniDFSCluster.Builder(nnConf)
-          .numDataNodes(numDNs)
+          .numDataNodes(nameservices.size() * numDatanodesPerNameservice)
           .nnTopology(topology)
-          .dataNodeConfOverlays(dnConfs)
           .build();
       cluster.waitActive();
 
@@ -827,22 +770,6 @@ public class MiniRouterDFSCluster {
     LOG.info("Waiting for NN {} {} to transition to {}", nsId, nnId, state);
     ActiveNamenodeResolver nnResolver = router.router.getNamenodeResolver();
     waitNamenodeRegistered(nnResolver, nsId, nnId, state);
-  }
-
-  /**
-   * Wait for name spaces to be active.
-   * @throws Exception If we cannot check the status or we timeout.
-   */
-  public void waitActiveNamespaces() throws Exception {
-    for (RouterContext r : this.routers) {
-      Router router = r.router;
-      final ActiveNamenodeResolver resolver = router.getNamenodeResolver();
-      for (FederationNamespaceInfo ns : resolver.getNamespaces()) {
-        final String nsId = ns.getNameserviceId();
-        waitNamenodeRegistered(
-            resolver, nsId, FederationNamenodeServiceState.ACTIVE);
-      }
-    }
   }
 
   /**
