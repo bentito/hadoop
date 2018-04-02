@@ -322,6 +322,22 @@ Placement constraint details.
 |max_cardinality|When placement type is cardinality, the maximum number of containers of the depending component that a host should have, where containers of this component can be allocated on.|false|integer (int64)||
 
 
+### PlacementConstraint
+
+Placement constraint details.
+
+|Name|Description|Required|Schema|Default|
+|----|----|----|----|----|
+|name|An optional name associated to this constraint.|false|string||
+|type|The type of placement.|true|PlacementType||
+|scope|The scope of placement.|true|PlacementScope||
+|target_tags|The name of the components that this component's placement policy is depending upon are added as target tags. So for affinity say, this component's containers are requesting to be placed on hosts where containers of the target tag component(s) are running on. Target tags can also contain the name of this component, in which case it implies that for anti-affinity say, no more than one container of this component can be placed on a host. Similarly, for cardinality, it would mean that containers of this component is requesting to be placed on hosts where at least minCardinality but no more than maxCardinality containers of the target tag component(s) are running.|false|string array||
+|node_attributes|Node attributes are a set of key:value(s) pairs associated with nodes.|false|object||
+|node_partitions|Node partitions where the containers of this component can run.|false|string array||
+|min_cardinality|When placement type is cardinality, the minimum number of containers of the depending component that a host should have, where containers of this component can be allocated on.|false|integer (int64)||
+|max_cardinality|When placement type is cardinality, the maximum number of containers of the depending component that a host should have, where containers of this component can be allocated on.|false|integer (int64)||
+
+
 ### PlacementPolicy
 
 Advanced placement policy of the components of a service.
@@ -372,6 +388,16 @@ Resource determines the amount of resources (vcores, memory, network, etc.) usab
 |cpus|Amount of vcores allocated to each container (optional but overrides cpus in profile if specified).|false|integer (int32)||
 |memory|Amount of memory allocated to each container (optional but overrides memory in profile if specified). Currently accepts only an integer value and default unit is in MB.|false|string||
 |additional|A map of resource type name to resource type information. Including value (integer), and unit (string). This will be used to specify resource other than cpu and memory. Please refer to example below.|false|object||
+
+
+### ResourceInformation
+
+ResourceInformation determines unit/value of resource types in addition to memory and vcores. It will be part of Resource object.
+
+|Name|Description|Required|Schema|Default|
+|----|----|----|----|----|
+|value|Integer value of the resource.|false|integer (int64)||
+|unit|Unit of the resource, acceptable values are - p/n/u/m/k/M/G/T/P/Ki/Mi/Gi/Ti/Pi. By default it is empty means no unit.|false|string||
 
 
 ### ResourceInformation
@@ -894,3 +920,158 @@ POST URL - http://localhost:8088/app/v1/services
 }
 ```
 
+##### POST Request JSON
+```json
+{
+  "name": "hello-world",
+  "version": "1.0.0",
+  "description": "hello world example with GPUs",
+  "components" :
+    [
+      {
+        "name": "hello",
+        "number_of_containers": 2,
+        "artifact": {
+          "id": "nginx:latest",
+          "type": "DOCKER"
+        },
+        "launch_command": "./start_nginx.sh",
+        "resource": {
+          "cpus": 1,
+          "memory": "256",
+          "additional" : {
+            "yarn.io/gpu" : {
+              "value" : 4,
+              "unit" : ""
+            }
+          }
+        }
+      }
+    ]
+}
+```
+
+### Create a service with a component requesting anti-affinity placement policy
+POST URL - http://localhost:8088/app/v1/services
+
+##### POST Request JSON
+```json
+{
+  "name": "hello-world",
+  "version": "1.0.0",
+  "description": "hello world example with anti-affinity",
+  "components" :
+    [
+      {
+        "name": "hello",
+        "number_of_containers": 3,
+        "artifact": {
+          "id": "nginx:latest",
+          "type": "DOCKER"
+        },
+        "launch_command": "./start_nginx.sh",
+        "resource": {
+          "cpus": 1,
+          "memory": "256"
+        },
+        "placement_policy": {
+          "constraints": [
+            {
+              "type": "ANTI_AFFINITY",
+              "scope": "NODE",
+              "target_tags": [
+                "hello"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+}
+```
+
+##### GET Response JSON
+GET URL - http://localhost:8088/app/v1/services/hello-world
+
+Note, that the 3 containers will come up on 3 different nodes. If there are less
+than 3 NMs running in the cluster, then all 3 container requests will not be
+fulfilled and the service will be in non-STABLE state.
+
+```json
+{
+    "name": "hello-world",
+    "version": "1.0.0",
+    "description": "hello world example with anti-affinity",
+    "id": "application_1503963985568_0003",
+    "lifetime": -1,
+    "state": "STABLE",
+    "components": [
+        {
+            "name": "hello",
+            "dependencies": [],
+            "state": "STABLE",
+            "resource": {
+                "cpus": 1,
+                "memory": "256"
+            },
+            "placement_policy": {
+              "constraints": [
+                {
+                  "type": "ANTI_AFFINITY",
+                  "scope": "NODE",
+                  "node_attributes": {},
+                  "node_partitions": [],
+                  "target_tags": [
+                    "hello"
+                  ]
+                }
+              ]
+            },
+            "configuration": {
+                "properties": {},
+                "env": {},
+                "files": []
+            },
+            "quicklinks": [],
+            "containers": [
+                {
+                    "id": "container_e03_1503963985568_0003_01_000002",
+                    "ip": "10.22.8.143",
+                    "hostname": "ctr-e03-1503963985568-0003-01-000002.example.site",
+                    "state": "READY",
+                    "launch_time": 1504051512412,
+                    "bare_host": "host100.cloud.com",
+                    "component_instance_name": "hello-0"
+                },
+                {
+                    "id": "container_e03_1503963985568_0003_01_000003",
+                    "ip": "10.22.8.144",
+                    "hostname": "ctr-e03-1503963985568-0003-01-000003.example.site",
+                    "state": "READY",
+                    "launch_time": 1504051536450,
+                    "bare_host": "host101.cloud.com",
+                    "component_instance_name": "hello-1"
+                },
+                {
+                    "id": "container_e03_1503963985568_0003_01_000004",
+                    "ip": "10.22.8.145",
+                    "hostname": "ctr-e03-1503963985568-0003-01-000004.example.site",
+                    "state": "READY",
+                    "launch_time": 1504051536450,
+                    "bare_host": "host102.cloud.com",
+                    "component_instance_name": "hello-2"
+                }
+            ],
+            "launch_command": "./start_nginx.sh",
+            "number_of_containers": 1,
+            "run_privileged_container": false
+        }
+    ],
+    "configuration": {
+        "properties": {},
+        "env": {},
+        "files": []
+    },
+    "quicklinks": {}
+}
+```
