@@ -23,8 +23,6 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.ExecutionType;
-import static org.apache.hadoop.yarn.service.api.records.Component
-    .RestartPolicyEnum;
 import org.apache.hadoop.yarn.api.records.ExecutionTypeRequest;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -38,24 +36,19 @@ import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.service.ServiceEvent;
-import org.apache.hadoop.yarn.service.ServiceEventType;
-import org.apache.hadoop.yarn.service.api.records.ContainerState;
-import org.apache.hadoop.yarn.service.api.records.ResourceInformation;
-import org.apache.hadoop.yarn.service.component.instance.ComponentInstance;
-import org.apache.hadoop.yarn.service.component.instance.ComponentInstanceId;
 import org.apache.hadoop.yarn.service.ContainerFailureTracker;
 import org.apache.hadoop.yarn.service.ServiceContext;
+import org.apache.hadoop.yarn.service.ServiceMaster;
 import org.apache.hadoop.yarn.service.ServiceMetrics;
 import org.apache.hadoop.yarn.service.ServiceScheduler;
 import org.apache.hadoop.yarn.service.api.records.PlacementPolicy;
+import org.apache.hadoop.yarn.service.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.service.api.records.ServiceState;
+import org.apache.hadoop.yarn.service.component.instance.ComponentInstance;
 import org.apache.hadoop.yarn.service.component.instance.ComponentInstanceEvent;
-import org.apache.hadoop.yarn.service.conf.YarnServiceConf;
-import org.apache.hadoop.yarn.service.monitor.ComponentHealthThresholdMonitor;
+import org.apache.hadoop.yarn.service.component.instance.ComponentInstanceId;
 import org.apache.hadoop.yarn.service.monitor.probe.MonitorUtils;
 import org.apache.hadoop.yarn.service.monitor.probe.Probe;
-import org.apache.hadoop.yarn.service.containerlaunch.ContainerLaunchService;
 import org.apache.hadoop.yarn.service.provider.ProviderUtils;
 import org.apache.hadoop.yarn.service.utils.ServiceUtils;
 import org.apache.hadoop.yarn.state.InvalidStateTransitionException;
@@ -89,7 +82,7 @@ import static org.apache.hadoop.yarn.service.api.ServiceApiConstants.*;
 import static org.apache.hadoop.yarn.service.component.ComponentEventType.*;
 import static org.apache.hadoop.yarn.service.component.ComponentState.*;
 import static org.apache.hadoop.yarn.service.component.instance.ComponentInstanceEventType.*;
-import static org.apache.hadoop.yarn.service.conf.YarnServiceConf.*;
+import static org.apache.hadoop.yarn.service.conf.YarnServiceConf.CONTAINER_FAILURE_THRESHOLD;
 
 public class Component implements EventHandler<ComponentEvent> {
   private static final Logger LOG = LoggerFactory.getLogger(Component.class);
@@ -695,66 +688,62 @@ public class Component implements EventHandler<ComponentEvent> {
       // composite constraints then this AND-ed composite constraint is not
       // used.
       PlacementConstraint finalConstraint = null;
-      if (placementPolicy != null) {
-        for (org.apache.hadoop.yarn.service.api.records.PlacementConstraint
-            yarnServiceConstraint : placementPolicy.getConstraints()) {
-          List<TargetExpression> targetExpressions = new ArrayList<>();
-          // Currently only intra-application allocation tags are supported.
-          if (!yarnServiceConstraint.getTargetTags().isEmpty()) {
-            targetExpressions.add(PlacementTargets.allocationTag(
-                yarnServiceConstraint.getTargetTags().toArray(new String[0])));
-          }
-          // Add all node attributes
-          for (Map.Entry<String, List<String>> attribute : yarnServiceConstraint
-              .getNodeAttributes().entrySet()) {
-            targetExpressions
-                .add(PlacementTargets.nodeAttribute(attribute.getKey(),
-                    attribute.getValue().toArray(new String[0])));
-          }
-          // Add all node partitions
-          if (!yarnServiceConstraint.getNodePartitions().isEmpty()) {
-            targetExpressions
-                .add(PlacementTargets.nodePartition(yarnServiceConstraint
-                    .getNodePartitions().toArray(new String[0])));
-          }
-          PlacementConstraint constraint = null;
-          switch (yarnServiceConstraint.getType()) {
-          case AFFINITY:
-            constraint = PlacementConstraints
-                .targetIn(yarnServiceConstraint.getScope().getValue(),
-                    targetExpressions.toArray(new TargetExpression[0]))
-                .build();
-            break;
-          case ANTI_AFFINITY:
-            constraint = PlacementConstraints
-                .targetNotIn(yarnServiceConstraint.getScope().getValue(),
-                    targetExpressions.toArray(new TargetExpression[0]))
-                .build();
-            break;
-          case AFFINITY_WITH_CARDINALITY:
-            constraint = PlacementConstraints.targetCardinality(
-                yarnServiceConstraint.getScope().name().toLowerCase(),
-                yarnServiceConstraint.getMinCardinality() == null ? 0
-                    : yarnServiceConstraint.getMinCardinality().intValue(),
-                yarnServiceConstraint.getMaxCardinality() == null
-                    ? Integer.MAX_VALUE
-                    : yarnServiceConstraint.getMaxCardinality().intValue(),
-                targetExpressions.toArray(new TargetExpression[0])).build();
-            break;
-          }
-          // The default AND-ed final composite constraint
-          if (finalConstraint != null) {
-            finalConstraint = PlacementConstraints
-                .and(constraint.getConstraintExpr(),
-                    finalConstraint.getConstraintExpr())
-                .build();
-          } else {
-            finalConstraint = constraint;
-          }
-          LOG.debug("[COMPONENT {}] Placement constraint: {}",
-              componentSpec.getName(),
-              constraint.getConstraintExpr().toString());
+      for (org.apache.hadoop.yarn.service.api.records.PlacementConstraint
+          yarnServiceConstraint : placementPolicy.getConstraints()) {
+        List<TargetExpression> targetExpressions = new ArrayList<>();
+        // Currently only intra-application allocation tags are supported.
+        if (!yarnServiceConstraint.getTargetTags().isEmpty()) {
+          targetExpressions.add(PlacementTargets.allocationTagToIntraApp(
+              yarnServiceConstraint.getTargetTags().toArray(new String[0])));
         }
+        // Add all node attributes
+        for (Map.Entry<String, List<String>> attribute : yarnServiceConstraint
+            .getNodeAttributes().entrySet()) {
+          targetExpressions.add(PlacementTargets.nodeAttribute(
+              attribute.getKey(), attribute.getValue().toArray(new String[0])));
+        }
+        // Add all node partitions
+        if (!yarnServiceConstraint.getNodePartitions().isEmpty()) {
+          targetExpressions
+              .add(PlacementTargets.nodePartition(yarnServiceConstraint
+                  .getNodePartitions().toArray(new String[0])));
+        }
+        PlacementConstraint constraint = null;
+        switch (yarnServiceConstraint.getType()) {
+        case AFFINITY:
+          constraint = PlacementConstraints
+              .targetIn(yarnServiceConstraint.getScope().getValue(),
+                  targetExpressions.toArray(new TargetExpression[0]))
+              .build();
+          break;
+        case ANTI_AFFINITY:
+          constraint = PlacementConstraints
+              .targetNotIn(yarnServiceConstraint.getScope().getValue(),
+                  targetExpressions.toArray(new TargetExpression[0]))
+              .build();
+          break;
+        case AFFINITY_WITH_CARDINALITY:
+          constraint = PlacementConstraints.targetCardinality(
+              yarnServiceConstraint.getScope().name().toLowerCase(),
+              yarnServiceConstraint.getMinCardinality() == null ? 0
+                  : yarnServiceConstraint.getMinCardinality().intValue(),
+              yarnServiceConstraint.getMaxCardinality() == null
+                  ? Integer.MAX_VALUE
+                  : yarnServiceConstraint.getMaxCardinality().intValue(),
+              targetExpressions.toArray(new TargetExpression[0])).build();
+          break;
+        }
+        // The default AND-ed final composite constraint
+        if (finalConstraint != null) {
+          finalConstraint = PlacementConstraints
+              .and(constraint.getConstraintExpr(),
+                  finalConstraint.getConstraintExpr())
+              .build();
+        } else {
+          finalConstraint = constraint;
+        }
+        LOG.debug("[COMPONENT {}] Placement constraint: {}",
+            componentSpec.getName(), constraint.getConstraintExpr().toString());
       }
       ResourceSizing resourceSizing = ResourceSizing.newInstance((int) count,
           resource);

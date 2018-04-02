@@ -545,7 +545,6 @@ definitions:
           - STOPPED
           - FAILED
           - FLEX
-          - UPGRADING
   ContainerState:
     description: The current state of the container of a service.
     properties:

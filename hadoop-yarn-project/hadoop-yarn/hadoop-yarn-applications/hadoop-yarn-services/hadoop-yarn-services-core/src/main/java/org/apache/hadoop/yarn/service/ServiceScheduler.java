@@ -164,15 +164,6 @@ public class ServiceScheduler extends CompositeService {
   // requests for a single service is not recommended.
   private boolean hasAtLeastOnePlacementConstraint;
 
-  private boolean gracefulStop = false;
-
-  private volatile FinalApplicationStatus finalApplicationStatus =
-      FinalApplicationStatus.ENDED;
-
-  // For unit test override since we don't want to terminate UT process.
-  private ServiceUtils.ProcessTerminationHandler
-      terminationHandler = new ServiceUtils.ProcessTerminationHandler();
-
   public ServiceScheduler(ServiceContext context) {
     super(context.getService().getName());
     this.context = context;
@@ -893,58 +884,5 @@ public class ServiceScheduler extends CompositeService {
 
   public boolean hasAtLeastOnePlacementConstraint() {
     return hasAtLeastOnePlacementConstraint;
-  }
-
-  /*
-* Check if all components of the scheduler finished.
-* If all components finished
-*   (which #failed-instances + #suceeded-instances = #total-n-containers)
-* The service will be terminated.
-*/
-  public synchronized void terminateServiceIfAllComponentsFinished() {
-    boolean shouldTerminate = true;
-
-    // Succeeded comps and failed comps, for logging purposes.
-    Set<String> succeededComponents = new HashSet<>();
-    Set<String> failedComponents = new HashSet<>();
-
-    for (Component comp : getAllComponents().values()) {
-      ComponentRestartPolicy restartPolicy = comp.getRestartPolicyHandler();
-      if (!restartPolicy.shouldTerminate(comp)) {
-        shouldTerminate = false;
-        break;
-      }
-
-      long nFailed = comp.getNumFailedInstances();
-
-      if (nFailed > 0) {
-        failedComponents.add(comp.getName());
-      } else{
-        succeededComponents.add(comp.getName());
-      }
-    }
-
-    if (shouldTerminate) {
-      LOG.info("All component finished, exiting Service Master... "
-          + ", final status=" + (failedComponents.isEmpty() ?
-          "Succeeded" :
-          "Failed"));
-      LOG.info("Succeeded components: [" + org.apache.commons.lang3.StringUtils
-          .join(succeededComponents, ",") + "]");
-      LOG.info("Failed components: [" + org.apache.commons.lang3.StringUtils
-          .join(failedComponents, ",") + "]");
-
-      if (failedComponents.isEmpty()) {
-        setGracefulStop(FinalApplicationStatus.SUCCEEDED);
-        getTerminationHandler().terminate(EXIT_SUCCESS);
-      } else{
-        setGracefulStop(FinalApplicationStatus.FAILED);
-        getTerminationHandler().terminate(EXIT_FALSE);
-      }
-    }
-  }
-
-  public ServiceUtils.ProcessTerminationHandler getTerminationHandler() {
-    return terminationHandler;
   }
 }
