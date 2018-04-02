@@ -31,17 +31,12 @@ import org.apache.hadoop.registry.client.api.RegistryConstants;
 import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.service.api.records.ComponentState;
-import org.apache.hadoop.yarn.service.api.records.Container;
-import org.apache.hadoop.yarn.service.api.records.ContainerState;
-import org.apache.hadoop.yarn.service.api.records.Service;
 import org.apache.hadoop.yarn.service.api.records.Artifact;
 import org.apache.hadoop.yarn.service.api.records.Component;
 import org.apache.hadoop.yarn.service.api.records.Configuration;
-import org.apache.hadoop.yarn.service.api.records.KerberosPrincipal;
 import org.apache.hadoop.yarn.service.api.records.PlacementConstraint;
-import org.apache.hadoop.yarn.service.api.records.PlacementPolicy;
 import org.apache.hadoop.yarn.service.api.records.Resource;
+import org.apache.hadoop.yarn.service.api.records.Service;
 import org.apache.hadoop.yarn.service.exceptions.SliderException;
 import org.apache.hadoop.yarn.service.conf.RestApiConstants;
 import org.apache.hadoop.yarn.service.exceptions.RestApiErrorMessages;
@@ -320,28 +315,9 @@ public class ServiceApiUtil {
   private static void validatePlacementPolicy(List<Component> components,
       Set<String> componentNames) {
     for (Component comp : components) {
-      PlacementPolicy placementPolicy = comp.getPlacementPolicy();
-      if (placementPolicy != null) {
-        for (PlacementConstraint constraint : placementPolicy
+      if (comp.getPlacementPolicy() != null) {
+        for (PlacementConstraint constraint : comp.getPlacementPolicy()
             .getConstraints()) {
-          if (constraint.getType() == null) {
-            throw new IllegalArgumentException(String.format(
-              RestApiErrorMessages.ERROR_PLACEMENT_POLICY_CONSTRAINT_TYPE_NULL,
-              constraint.getName() == null ? "" : constraint.getName() + " ",
-              comp.getName()));
-          }
-          if (constraint.getScope() == null) {
-            throw new IllegalArgumentException(String.format(
-              RestApiErrorMessages.ERROR_PLACEMENT_POLICY_CONSTRAINT_SCOPE_NULL,
-              constraint.getName() == null ? "" : constraint.getName() + " ",
-              comp.getName()));
-          }
-          if (constraint.getTargetTags().isEmpty()) {
-            throw new IllegalArgumentException(String.format(
-              RestApiErrorMessages.ERROR_PLACEMENT_POLICY_CONSTRAINT_TAGS_NULL,
-              constraint.getName() == null ? "" : constraint.getName() + " ",
-              comp.getName()));
-          }
           for (String targetTag : constraint.getTargetTags()) {
             if (!comp.getName().equals(targetTag)) {
               throw new IllegalArgumentException(String.format(
