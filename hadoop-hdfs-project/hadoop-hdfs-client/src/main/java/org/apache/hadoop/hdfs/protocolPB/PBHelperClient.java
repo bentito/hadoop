@@ -382,9 +382,7 @@ public class PBHelperClient {
         .setDatanodeUuidBytes(dn.getDatanodeUuidBytes())
         .setInfoPort(dn.getInfoPort())
         .setInfoSecurePort(dn.getInfoSecurePort())
-        .setIpcPort(dn.getIpcPort())
-        .setOzoneRestPort(dn.getOzoneRestPort())
-        .build();
+        .setIpcPort(dn.getIpcPort()).build();
   }
 
   public static DatanodeInfoProto.AdminState convert(
@@ -835,13 +833,9 @@ public class PBHelperClient {
 
   // DatanodeId
   public static DatanodeID convert(DatanodeIDProto dn) {
-    DatanodeID datanodeID =
-        new DatanodeID(dn.getIpAddr(), dn.getHostName(), dn.getDatanodeUuid(),
-            dn.getXferPort(), dn.getInfoPort(),
-            dn.hasInfoSecurePort() ? dn.getInfoSecurePort() : 0,
-            dn.getIpcPort());
-    datanodeID.setOzoneRestPort(dn.getOzoneRestPort());
-    return datanodeID;
+    return new DatanodeID(dn.getIpAddr(), dn.getHostName(),
+        dn.getDatanodeUuid(), dn.getXferPort(), dn.getInfoPort(),
+        dn.hasInfoSecurePort() ? dn.getInfoSecurePort() : 0, dn.getIpcPort());
   }
 
   public static AdminStates convert(AdminState adminState) {
