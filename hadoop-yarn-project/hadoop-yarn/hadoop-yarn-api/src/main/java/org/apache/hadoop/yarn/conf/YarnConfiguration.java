@@ -1965,15 +1965,19 @@ public class YarnConfiguration extends Configuration {
    */
   public static final boolean DEFAULT_NM_DOCKER_ALLOW_DELAYED_REMOVAL = false;
 
-  /** The default list of read-only mounts to be bind-mounted into all
-   *  Docker containers that use DockerContainerRuntime. */
-  public static final String NM_DOCKER_DEFAULT_RO_MOUNTS =
-      DOCKER_CONTAINER_RUNTIME_PREFIX + "default-ro-mounts";
+  /**
+   * A configurable value to pass to the Docker Stop command. This value
+   * defines the number of seconds between the docker stop command sending
+   * a SIGTERM and a SIGKILL.
+   */
+  public static final String NM_DOCKER_STOP_GRACE_PERIOD =
+      DOCKER_CONTAINER_RUNTIME_PREFIX + "stop.grace-period";
 
-  /** The default list of read-write mounts to be bind-mounted into all
-   *  Docker containers that use DockerContainerRuntime. */
-  public static final String NM_DOCKER_DEFAULT_RW_MOUNTS =
-      DOCKER_CONTAINER_RUNTIME_PREFIX + "default-rw-mounts";
+  /**
+   * The default value for the grace period between the SIGTERM and the
+   * SIGKILL in the Docker Stop command.
+   */
+  public static final int DEFAULT_NM_DOCKER_STOP_GRACE_PERIOD = 10;
 
   /** The mode in which the Java Container Sandbox should run detailed by
    *  the JavaSandboxLinuxContainerRuntime. */

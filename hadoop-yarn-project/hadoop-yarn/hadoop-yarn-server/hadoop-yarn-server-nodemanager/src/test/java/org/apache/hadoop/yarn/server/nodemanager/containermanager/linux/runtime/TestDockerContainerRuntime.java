@@ -154,6 +154,7 @@ public class TestDockerContainerRuntime {
   private final String whitelistedUser = "yoda";
   private String[] testCapabilities;
   private final String signalPid = "1234";
+  private int dockerStopGracePeriod;
 
   @Rule
   public TemporaryFolder tempDir = new TemporaryFolder();
@@ -178,6 +179,10 @@ public class TestDockerContainerRuntime {
     env.put("FROM_CLIENT", "1");
     image = "busybox:latest";
     nmContext = createMockNMContext();
+
+    dockerStopGracePeriod = conf.getInt(
+      YarnConfiguration.NM_DOCKER_STOP_GRACE_PERIOD,
+      YarnConfiguration.DEFAULT_NM_DOCKER_STOP_GRACE_PERIOD);
 
     env.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, image);
     when(container.getContainerId()).thenReturn(cId);
@@ -1509,18 +1514,14 @@ public class TestDockerContainerRuntime {
   public void testDockerStopOnTermSignalWhenRunning()
       throws ContainerExecutionException, PrivilegedOperationException,
       IOException {
-    when(mockExecutor
-        .executePrivilegedOperation(anyList(), any(PrivilegedOperation.class),
-        any(File.class), anyMap(), anyBoolean(), anyBoolean())).thenReturn(
-        DockerCommandExecutor.DockerContainerStatus.RUNNING.getName());
-    List<String> dockerCommands = getDockerCommandsForDockerStop(
-        ContainerExecutor.Signal.TERM);
-    Assert.assertEquals(3, dockerCommands.size());
+    List<String> dockerCommands = getDockerCommandsForSignal(
+        ContainerExecutor.Signal.TERM,
+        DockerCommandExecutor.DockerContainerStatus.RUNNING);
+    Assert.assertEquals(4, dockerCommands.size());
     Assert.assertEquals("[docker-command-execution]", dockerCommands.get(0));
     Assert.assertEquals("  docker-command=stop", dockerCommands.get(1));
-    Assert.assertEquals(
-        "  name=container_e11_1518975676334_14532816_01_000001",
-        dockerCommands.get(2));
+    Assert.assertEquals("  name=container_id", dockerCommands.get(2));
+    Assert.assertEquals("  time=10", dockerCommands.get(3));
   }
 
   @Test
@@ -1563,22 +1564,14 @@ public class TestDockerContainerRuntime {
   public void testDockerStopOnTermSignalWhenRunningPrivileged()
       throws ContainerExecutionException, PrivilegedOperationException,
       IOException {
-    conf.set(YarnConfiguration.NM_DOCKER_ALLOW_PRIVILEGED_CONTAINERS, "true");
-    conf.set(YarnConfiguration.NM_DOCKER_PRIVILEGED_CONTAINERS_ACL,
-        submittingUser);
-    env.put(ENV_DOCKER_CONTAINER_RUN_PRIVILEGED_CONTAINER, "true");
-    when(mockExecutor
-        .executePrivilegedOperation(anyList(), any(PrivilegedOperation.class),
-        any(File.class), anyMap(), anyBoolean(), anyBoolean())).thenReturn(
-        DockerCommandExecutor.DockerContainerStatus.RUNNING.getName());
-    List<String> dockerCommands = getDockerCommandsForDockerStop(
-        ContainerExecutor.Signal.TERM);
-    Assert.assertEquals(3, dockerCommands.size());
+    List<String> dockerCommands = getDockerCommandsForSignal(
+        ContainerExecutor.Signal.KILL,
+        DockerCommandExecutor.DockerContainerStatus.RUNNING);
+    Assert.assertEquals(4, dockerCommands.size());
     Assert.assertEquals("[docker-command-execution]", dockerCommands.get(0));
     Assert.assertEquals("  docker-command=stop", dockerCommands.get(1));
-    Assert.assertEquals(
-        "  name=container_e11_1518975676334_14532816_01_000001",
-        dockerCommands.get(2));
+    Assert.assertEquals("  name=container_id", dockerCommands.get(2));
+    Assert.assertEquals("  time=10", dockerCommands.get(3));
   }
 
   @Test
@@ -2198,8 +2191,38 @@ public class TestDockerContainerRuntime {
     List<String> args = op.getArguments();
     String dockerCommandFile = args.get(11);
 
-    List<String> dockerCommands = Files.readAllLines(
-        Paths.get(dockerCommandFile), Charset.forName("UTF-8"));
+    @Override
+    public void signalContainer(ContainerRuntimeContext ctx)
+        throws ContainerExecutionException {
+      ContainerExecutor.Signal signal = ctx.getExecutionAttribute(SIGNAL);
+      String containerName = ctx.getContainer().getContainerId().toString();
+      Map<String, String> environment =
+          ctx.getContainer().getLaunchContext().getEnvironment();
+      try {
+        if (ContainerExecutor.Signal.KILL.equals(signal)
+            || ContainerExecutor.Signal.TERM.equals(signal)) {
+          if (DockerCommandExecutor.isStoppable(containerStatus)) {
+            DockerStopCommand dockerStopCommand =
+                new DockerStopCommand(containerName)
+                .setGracePeriod(dockerStopGracePeriod);
+            DockerCommandExecutor.executeDockerCommand(dockerStopCommand,
+                containerName, environment, conf, mockExecutor, false);
+          }
+        } else {
+          if (DockerCommandExecutor.isKillable(containerStatus)) {
+            DockerKillCommand dockerKillCommand =
+                new DockerKillCommand(containerName);
+            dockerKillCommand.setSignal(signal.name());
+            DockerCommandExecutor.executeDockerCommand(dockerKillCommand,
+                containerName, environment, conf, mockExecutor, false);
+          }
+        }
+      } catch (ContainerExecutionException e) {
+        LOG.warn("Signal docker container failed. Exception: ", e);
+        throw new ContainerExecutionException("Signal docker container failed",
+            e.getExitCode(), e.getOutput(), e.getErrorOutput());
+      }
+    }
 
     int expected = 3;
     int counter = 0;
