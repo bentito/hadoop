@@ -1787,17 +1787,11 @@
   </property>
 
   <property>
-    <description>The default list of read-only mounts to be bind-mounted
-      into all Docker containers that use DockerContainerRuntime.</description>
-    <name>yarn.nodemanager.runtime.linux.docker.default-ro-mounts</name>
-    <value></value>
-  </property>
-
-  <property>
-    <description>The default list of read-write mounts to be bind-mounted
-      into all Docker containers that use DockerContainerRuntime.</description>
-    <name>yarn.nodemanager.runtime.linux.docker.default-rw-mounts</name>
-    <value></value>
+    <description>A configurable value to pass to the Docker Stop command. This value
+      defines the number of seconds between the docker stop command sending
+      a SIGTERM and a SIGKILL.</description>
+    <name>yarn.nodemanager.runtime.linux.docker.stop.grace-period</name>
+    <value>10</value>
   </property>
 
   <property>
