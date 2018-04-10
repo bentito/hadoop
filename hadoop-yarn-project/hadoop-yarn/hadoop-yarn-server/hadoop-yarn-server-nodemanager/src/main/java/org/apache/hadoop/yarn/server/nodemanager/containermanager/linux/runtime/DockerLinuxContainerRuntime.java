@@ -957,28 +957,28 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   @Override
   public void relaunchContainer(ContainerRuntimeContext ctx)
       throws ContainerExecutionException {
-    ContainerId containerId = ctx.getContainer().getContainerId();
-    String containerIdStr = containerId.toString();
+    Container container = ctx.getContainer();
+    String containerIdStr = container.getContainerId().toString();
     // Check to see if the container already exists for relaunch
     DockerCommandExecutor.DockerContainerStatus containerStatus =
         DockerCommandExecutor.getContainerStatus(containerIdStr, conf,
-            privilegedOperationExecutor, nmContext);
+            privilegedOperationExecutor);
     if (containerStatus != null &&
         DockerCommandExecutor.isStartable(containerStatus)) {
       DockerStartCommand startCommand = new DockerStartCommand(containerIdStr);
       String commandFile = dockerClient.writeCommandToTempFile(startCommand,
-          containerId, nmContext);
+          containerIdStr);
       PrivilegedOperation launchOp = buildLaunchOp(ctx, commandFile,
           startCommand);
-
-      // Some failures here are acceptable. Let the calling executor decide.
-      launchOp.disableFailureLogging();
 
       try {
         privilegedOperationExecutor.executePrivilegedOperation(null,
             launchOp, null, null, false, false);
       } catch (PrivilegedOperationException e) {
-        throw new ContainerExecutionException("Relaunch container failed", e
+        LOG.warn("Relaunch container failed. Exception: ", e);
+        LOG.info("Docker command used: " + startCommand);
+
+        throw new ContainerExecutionException("Launch container failed", e
             .getExitCode(), e.getOutput(), e.getErrorOutput());
       }
     } else {

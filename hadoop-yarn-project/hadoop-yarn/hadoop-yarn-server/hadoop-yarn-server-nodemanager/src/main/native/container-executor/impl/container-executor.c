@@ -1611,11 +1611,11 @@ int launch_docker_container_as_user(const char * user, const char *app_id,
     goto cleanup;
   }
 
-  docker_command_with_binary = flatten(docker_command);
-
-  // Launch container
-  pid_t child_pid = fork();
-  if (child_pid == -1) {
+  fprintf(LOGFILE, "Launching docker container...\n");
+  fprintf(LOGFILE, "Docker run command: %s\n", docker_command_with_binary);
+  FILE* start_docker = popen(docker_command_with_binary, "r");
+  if (WEXITSTATUS(pclose (start_docker)) != 0)
+  {
     fprintf (ERRORFILE,
       "Could not invoke docker %s.\n", docker_command_with_binary);
     fflush(ERRORFILE);
