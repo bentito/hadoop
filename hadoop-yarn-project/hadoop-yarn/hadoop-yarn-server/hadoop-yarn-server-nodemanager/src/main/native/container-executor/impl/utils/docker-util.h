@@ -177,6 +177,16 @@ int get_docker_volume_command(const char *command_file, const struct configurati
 int get_docker_start_command(const char* command_file, const struct configuration* conf, args *args);
 
 /**
+ * Get the Docker start command line string. The function will verify that the params file is meant for the start command.
+ * @param command_file File containing the params for the Docker start command
+ * @param conf Configuration struct containing the container-executor.cfg details
+ * @param out Buffer to fill with the start command
+ * @param outlen Size of the output buffer
+ * @return Return code with 0 indicating success and non-zero codes indicating error
+ */
+int get_docker_start_command(const char* command_file, const struct configuration* conf, char *out, const size_t outlen);
+
+/**
  * Give an error message for the supplied error code
  * @param error_code the error code
  * @return const string containing the error message
