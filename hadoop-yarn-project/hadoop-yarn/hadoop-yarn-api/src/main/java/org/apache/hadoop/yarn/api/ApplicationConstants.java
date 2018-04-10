@@ -109,6 +109,16 @@ public interface ApplicationConstants {
   }
 
   /**
+   * The type of launch for the container.
+   */
+  @Public
+  @Unstable
+  enum ContainerLaunchType {
+    LAUNCH,
+    RELAUNCH
+  }
+
+  /**
    * Environment for Applications.
    *
    * Some of the environment variables for applications are <em>final</em>
