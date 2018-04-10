@@ -34,8 +34,6 @@
 #define DOCKER_KILL_COMMAND "kill"
 #define DOCKER_VOLUME_COMMAND "volume"
 #define DOCKER_START_COMMAND "start"
-#define DOCKER_ARG_MAX 1024
-#define ARGS_INITIAL_VALUE { 0 };
 
 typedef struct args {
     int length;
@@ -183,6 +181,16 @@ int get_docker_volume_command(const char *command_file, const struct configurati
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_start_command(const char* command_file, const struct configuration* conf, args *args);
+
+/**
+ * Get the Docker start command line string. The function will verify that the params file is meant for the start command.
+ * @param command_file File containing the params for the Docker start command
+ * @param conf Configuration struct containing the container-executor.cfg details
+ * @param out Buffer to fill with the start command
+ * @param outlen Size of the output buffer
+ * @return Return code with 0 indicating success and non-zero codes indicating error
+ */
+int get_docker_start_command(const char* command_file, const struct configuration* conf, char *out, const size_t outlen);
 
 /**
  * Give an error message for the supplied error code
