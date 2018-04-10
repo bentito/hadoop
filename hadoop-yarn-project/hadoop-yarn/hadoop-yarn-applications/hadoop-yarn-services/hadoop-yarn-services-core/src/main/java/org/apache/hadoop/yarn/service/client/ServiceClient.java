@@ -649,15 +649,6 @@ public class ServiceClient extends AppAdminClient implements SliderExitCodes,
     }
   }
 
-  private boolean cleanUpRegistry(String serviceName, String user) throws
-      SliderException {
-    String encodedName = RegistryUtils.registryUser(user);
-
-    String registryPath = RegistryUtils.servicePath(encodedName,
-        YarnServiceConstants.APP_TYPE, serviceName);
-    return cleanUpRegistryPath(registryPath, serviceName);
-  }
-
   private boolean cleanUpRegistry(String serviceName) throws SliderException {
     String registryPath =
         ServiceRegistryUtils.registryPathForInstance(serviceName);
@@ -1241,7 +1232,6 @@ public class ServiceClient extends AppAdminClient implements SliderExitCodes,
     ServiceApiUtil.validateNameFormat(serviceName, getConfig());
     Service appSpec = new Service();
     appSpec.setName(serviceName);
-    appSpec.setState(ServiceState.STOPPED);
     ApplicationId currentAppId = getAppId(serviceName);
     if (currentAppId == null) {
       LOG.info("Service {} does not have an application ID", serviceName);

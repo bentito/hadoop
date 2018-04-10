@@ -61,7 +61,7 @@ import java.util.*;
 import java.util.concurrent.TimeoutException;
 
 import static org.apache.hadoop.yarn.api.records.YarnApplicationState.FINISHED;
-import static org.apache.hadoop.yarn.service.conf.YarnServiceConf.*;
+import static org.apache.hadoop.yarn.service.conf.YarnServiceConf.YARN_SERVICE_BASE_PATH;
 import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_COMMAND_ARGUMENT_ERROR;
 import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_NOT_FOUND;
 
