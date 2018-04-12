@@ -2325,17 +2325,7 @@ public class RouterRpcServer extends AbstractService
    */
   private Map<String, Long> getMountPointDates(String path) {
     Map<String, Long> ret = new TreeMap<>();
-    if (subclusterResolver instanceof MountTableResolver) {
-      try {
-        final List<String> children = subclusterResolver.getMountPoints(path);
-        for (String child : children) {
-          Long modTime = getModifiedTime(ret, path, child);
-          ret.put(child, modTime);
-        }
-      } catch (IOException e) {
-        LOG.error("Cannot get mount point", e);
-      }
-    }
+    // TODO add when we have a Mount Table
     return ret;
   }
 
