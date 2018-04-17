@@ -307,7 +307,7 @@ public class AMLauncher implements Runnable {
         LOG.info("Launching master" + application.getAppAttemptId());
         launch();
         handler.handle(new RMAppAttemptEvent(application.getAppAttemptId(),
-            RMAppAttemptEventType.LAUNCHED, System.currentTimeMillis()));
+            RMAppAttemptEventType.LAUNCHED));
       } catch(Exception ie) {
         onAMLaunchFailed(masterContainer.getId(), ie);
       }
