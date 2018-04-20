@@ -127,4 +127,54 @@ public final class DockerClient {
       throw new ContainerExecutionException(e);
     }
   }
+
+  public String writeCommandToTempFile(DockerCommand cmd, Container container,
+      Context nmContext) throws ContainerExecutionException {
+    ContainerId containerId = container.getContainerId();
+    String filePrefix = containerId.toString();
+    ApplicationId appId = containerId.getApplicationAttemptId()
+        .getApplicationId();
+    File dockerCommandFile;
+    String cmdDir = null;
+
+    if(nmContext == null || nmContext.getLocalDirsHandler() == null) {
+      throw new ContainerExecutionException(
+          "Unable to write temporary docker command");
+    }
+
+    try {
+      cmdDir = nmContext.getLocalDirsHandler().getLocalPathForWrite(
+          ResourceLocalizationService.NM_PRIVATE_DIR + Path.SEPARATOR +
+          appId + Path.SEPARATOR + filePrefix + Path.SEPARATOR).toString();
+
+      dockerCommandFile = File.createTempFile(TMP_FILE_PREFIX + filePrefix,
+          TMP_FILE_SUFFIX, new File(cmdDir));
+
+      Writer writer = new OutputStreamWriter(
+          new FileOutputStream(dockerCommandFile.toString()), "UTF-8");
+      PrintWriter printWriter = new PrintWriter(writer);
+      printWriter.println("[docker-command-execution]");
+      for (Map.Entry<String, List<String>> entry :
+          cmd.getDockerCommandWithArguments().entrySet()) {
+        if (entry.getKey().contains("=")) {
+          throw new ContainerExecutionException(
+              "'=' found in entry for docker command file, key = " + entry
+                  .getKey() + "; value = " + entry.getValue());
+        }
+        if (entry.getValue().contains("\n")) {
+          throw new ContainerExecutionException(
+              "'\\n' found in entry for docker command file, key = " + entry
+                  .getKey() + "; value = " + entry.getValue());
+        }
+        printWriter.println("  " + entry.getKey() + "=" + StringUtils
+            .join(",", entry.getValue()));
+      }
+      printWriter.close();
+
+      return dockerCommandFile.toString();
+    } catch (IOException e) {
+      LOG.warn("Unable to write docker command to " + cmdDir);
+      throw new ContainerExecutionException(e);
+    }
+  }
 }
