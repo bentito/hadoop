@@ -1178,6 +1178,24 @@ public class TestDockerContainerRuntime {
   }
 
   @Test
+  public void testMountInvalid() throws ContainerExecutionException {
+    DockerLinuxContainerRuntime runtime = new DockerLinuxContainerRuntime(
+        mockExecutor, mockCGroupsHandler);
+    runtime.initialize(conf, nmContext);
+
+    env.put(
+        DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_LOCAL_RESOURCE_MOUNTS,
+        "source:target:other");
+
+    try {
+      runtime.launchContainer(builder.build());
+      Assert.fail("Expected a launch container failure due to invalid mount.");
+    } catch (ContainerExecutionException e) {
+      LOG.info("Caught expected exception : " + e);
+    }
+  }
+
+  @Test
   public void testMountMultiple()
       throws ContainerExecutionException, PrivilegedOperationException,
       IOException {
@@ -1524,7 +1542,9 @@ public class TestDockerContainerRuntime {
     Assert.assertEquals(4, dockerCommands.size());
     Assert.assertEquals("[docker-command-execution]", dockerCommands.get(0));
     Assert.assertEquals("  docker-command=stop", dockerCommands.get(1));
-    Assert.assertEquals("  name=container_id", dockerCommands.get(2));
+    Assert.assertEquals(
+        "  name=container_e11_1518975676334_14532816_01_000001",
+        dockerCommands.get(2));
     Assert.assertEquals("  time=10", dockerCommands.get(3));
   }
 
@@ -1574,7 +1594,9 @@ public class TestDockerContainerRuntime {
     Assert.assertEquals(4, dockerCommands.size());
     Assert.assertEquals("[docker-command-execution]", dockerCommands.get(0));
     Assert.assertEquals("  docker-command=stop", dockerCommands.get(1));
-    Assert.assertEquals("  name=container_id", dockerCommands.get(2));
+    Assert.assertEquals(
+        "  name=container_e11_1518975676334_14532816_01_000001",
+        dockerCommands.get(2));
     Assert.assertEquals("  time=10", dockerCommands.get(3));
   }
 
@@ -1592,29 +1614,6 @@ public class TestDockerContainerRuntime {
         DockerCommandExecutor.DockerContainerStatus.RUNNING.getName());
     List<String> dockerCommands = getDockerCommandsForDockerStop(
         ContainerExecutor.Signal.KILL);
-    Assert.assertEquals(4, dockerCommands.size());
-    Assert.assertEquals("[docker-command-execution]", dockerCommands.get(0));
-    Assert.assertEquals("  docker-command=kill", dockerCommands.get(1));
-    Assert.assertEquals(
-        "  name=container_e11_1518975676334_14532816_01_000001",
-        dockerCommands.get(2));
-    Assert.assertEquals("  signal=KILL", dockerCommands.get(3));
-  }
-
-  @Test
-  public void testDockerKillOnQuitSignalWhenRunningPrivileged()
-      throws Exception {
-    conf.set(YarnConfiguration.NM_DOCKER_ALLOW_PRIVILEGED_CONTAINERS, "true");
-    conf.set(YarnConfiguration.NM_DOCKER_PRIVILEGED_CONTAINERS_ACL,
-        submittingUser);
-    env.put(ENV_DOCKER_CONTAINER_RUN_PRIVILEGED_CONTAINER, "true");
-    when(mockExecutor
-        .executePrivilegedOperation(anyList(), any(PrivilegedOperation.class),
-        any(File.class), anyMap(), anyBoolean(), anyBoolean())).thenReturn(
-        DockerCommandExecutor.DockerContainerStatus.RUNNING.getName());
-    List<String> dockerCommands = getDockerCommandsForDockerStop(
-        ContainerExecutor.Signal.QUIT);
-
     Assert.assertEquals(4, dockerCommands.size());
     Assert.assertEquals("[docker-command-execution]", dockerCommands.get(0));
     Assert.assertEquals("  docker-command=kill", dockerCommands.get(1));
@@ -2201,7 +2200,9 @@ public class TestDockerContainerRuntime {
         dockerCommands.get(counter++));
     Assert.assertEquals("  docker-command=start",
         dockerCommands.get(counter++));
-    Assert.assertEquals("  name=container_id", dockerCommands.get(counter));
+    Assert.assertEquals(
+        "  name=container_e11_1518975676334_14532816_01_000001",
+        dockerCommands.get(counter));
   }
 
   class MockRuntime extends DockerLinuxContainerRuntime {
@@ -2229,7 +2230,8 @@ public class TestDockerContainerRuntime {
                 new DockerStopCommand(containerName)
                 .setGracePeriod(dockerStopGracePeriod);
             DockerCommandExecutor.executeDockerCommand(dockerStopCommand,
-                containerName, environment, conf, mockExecutor, false);
+                containerName, environment, conf, mockExecutor, false,
+                nmContext);
           }
         } else {
           if (DockerCommandExecutor.isKillable(containerStatus)) {
@@ -2237,7 +2239,8 @@ public class TestDockerContainerRuntime {
                 new DockerKillCommand(containerName);
             dockerKillCommand.setSignal(signal.name());
             DockerCommandExecutor.executeDockerCommand(dockerKillCommand,
-                containerName, environment, conf, mockExecutor, false);
+                containerName, environment, conf, mockExecutor, false,
+                nmContext);
           }
         }
       } catch (ContainerExecutionException e) {
@@ -2260,7 +2263,7 @@ public class TestDockerContainerRuntime {
           DockerRmCommand dockerRmCommand = new DockerRmCommand(containerId);
           DockerCommandExecutor
               .executeDockerCommand(dockerRmCommand, containerId, env, conf,
-                  privilegedOperationExecutor, false);
+                  privilegedOperationExecutor, false, nmContext);
         }
       }
     }

@@ -1314,7 +1314,9 @@ int initialize_app(const char *user, const char *app_id,
 
 char **construct_docker_command(const char *command_file) {
   int ret = 0;
-  struct args buffer = ARGS_INITIAL_VALUE;
+  size_t command_size = MIN(sysconf(_SC_ARG_MAX), 128*1024);
+  char *buffer = alloc_and_clear_memory(command_size, sizeof(char));
+
   uid_t user = geteuid();
   gid_t group = getegid();
   if (change_effective_user(nm_uid, nm_gid) != 0) {
@@ -1322,7 +1324,8 @@ char **construct_docker_command(const char *command_file) {
     fflush(ERRORFILE);
     exit(SETUID_OPER_FAILED);
   }
-  ret = get_docker_command(command_file, &CFG, &buffer);
+
+  ret = get_docker_command(command_file, &CFG, buffer, command_size);
   if (ret != 0) {
     fprintf(ERRORFILE, "Error constructing docker command, docker error code=%d, error message='%s'\n", ret,
             get_docker_error_message(ret));
@@ -1336,8 +1339,7 @@ char **construct_docker_command(const char *command_file) {
     exit(SETUID_OPER_FAILED);
   }
 
-  char** copy = extract_execv_args(&buffer);
-  return copy;
+  return buffer;
 }
 
 int run_docker(const char *command_file) {

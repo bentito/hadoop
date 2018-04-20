@@ -377,7 +377,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
       Container container) throws ContainerExecutionException {
     try {
       String commandFile = dockerClient.writeCommandToTempFile(
-          dockerVolumeCommand, container.getContainerId(), nmContext);
+          dockerVolumeCommand, container, nmContext);
       PrivilegedOperation privOp = new PrivilegedOperation(
           PrivilegedOperation.OperationType.RUN_DOCKER_CMD);
       privOp.appendArgs(commandFile);
@@ -938,7 +938,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     }
 
     String commandFile = dockerClient.writeCommandToTempFile(runCommand,
-        containerId, nmContext);
+        container, nmContext);
     PrivilegedOperation launchOp = buildLaunchOp(ctx,
         commandFile, runCommand);
 
@@ -962,12 +962,12 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     // Check to see if the container already exists for relaunch
     DockerCommandExecutor.DockerContainerStatus containerStatus =
         DockerCommandExecutor.getContainerStatus(containerIdStr, conf,
-            privilegedOperationExecutor);
+            privilegedOperationExecutor, nmContext);
     if (containerStatus != null &&
         DockerCommandExecutor.isStartable(containerStatus)) {
       DockerStartCommand startCommand = new DockerStartCommand(containerIdStr);
       String commandFile = dockerClient.writeCommandToTempFile(startCommand,
-          containerIdStr);
+          container, nmContext);
       PrivilegedOperation launchOp = buildLaunchOp(ctx, commandFile,
           startCommand);
 
@@ -1074,7 +1074,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
         new DockerInspectCommand(containerIdStr).getIpAndHost();
     try {
       String commandFile = dockerClient.writeCommandToTempFile(inspectCommand,
-          containerId, nmContext);
+          container, nmContext);
       PrivilegedOperation privOp = new PrivilegedOperation(
           PrivilegedOperation.OperationType.RUN_DOCKER_CMD);
       privOp.appendArgs(commandFile);
@@ -1226,24 +1226,16 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   private void handleContainerKill(ContainerRuntimeContext ctx,
       Map<String, String> env,
       ContainerExecutor.Signal signal) throws ContainerExecutionException {
-    Container container = ctx.getContainer();
-
-    // Only need to check whether the container was asked to be privileged.
-    // If the container had failed the permissions checks upon launch, it
-    // would have never been launched and thus we wouldn't be here
-    // attempting to signal it.
-    if (isContainerRequestedAsPrivileged(container)) {
-      String containerId = container.getContainerId().toString();
-      DockerCommandExecutor.DockerContainerStatus containerStatus =
-          DockerCommandExecutor.getContainerStatus(containerId, conf,
-          privilegedOperationExecutor, nmContext);
-      if (DockerCommandExecutor.isKillable(containerStatus)) {
-        DockerKillCommand dockerKillCommand =
-            new DockerKillCommand(containerId).setSignal(signal.name());
-        DockerCommandExecutor.executeDockerCommand(dockerKillCommand,
-            containerId, env, conf, privilegedOperationExecutor, false,
-            nmContext);
-      } else {
+    DockerCommandExecutor.DockerContainerStatus containerStatus =
+        DockerCommandExecutor.getContainerStatus(containerId, conf,
+            privilegedOperationExecutor, nmContext);
+    if (DockerCommandExecutor.isKillable(containerStatus)) {
+      DockerKillCommand dockerKillCommand =
+          new DockerKillCommand(containerId).setSignal(signal.name());
+      DockerCommandExecutor.executeDockerCommand(dockerKillCommand, containerId,
+          env, conf, privilegedOperationExecutor, false, nmContext);
+    } else {
+      if (LOG.isDebugEnabled()) {
         LOG.debug(
             "Container status is {}, skipping kill - {}",
             containerStatus.getName(), containerId);
