@@ -931,37 +931,31 @@ public class UserGroupInformation {
           // NPE is only possible if this issue is not fixed in the JDK
           // currently used
           try {
-            tgtEndTime = tgt.getEndTime().getTime();
-          } catch (NullPointerException npe) {
-            LOG.error("NPE thrown while getting KerberosTicket endTime. "
-                + "Aborting renew thread for {}.", getUserName());
-            return;
-          }
-
-          LOG.warn("Exception encountered while running the renewal "
-                  + "command for {}. (TGT end time:{}, renewalFailures: {},"
-                  + "renewalFailuresTotal: {})", getUserName(), tgtEndTime,
-              metrics.renewalFailures.value(),
-              metrics.renewalFailuresTotal.value(), ie);
-          if (rp == null) {
-            // Use a dummy maxRetries to create the policy. The policy will
-            // only be used to get next retry time with exponential back-off.
-            // The final retry time will be later limited within the
-            // tgt endTime in getNextTgtRenewalTime.
-            rp = RetryPolicies.exponentialBackoffRetry(Long.SIZE - 2,
-                kerberosMinSecondsBeforeRelogin, TimeUnit.MILLISECONDS);
-          }
-          try {
-            nextRefresh = getNextTgtRenewalTime(tgtEndTime, now, rp);
-          } catch (Exception e) {
-            LOG.error("Exception when calculating next tgt renewal time", e);
-            return;
-          }
-          metrics.renewalFailures.incr();
-          // retry until close enough to tgt endTime.
-          if (now > nextRefresh) {
-            LOG.error("TGT is expired. Aborting renew thread for {}.",
-                getUserName());
+            long now = Time.now();
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Current time is " + now);
+              LOG.debug("Next refresh is " + nextRefresh);
+            }
+            if (now < nextRefresh) {
+              Thread.sleep(nextRefresh - now);
+            }
+            String output = Shell.execCommand(cmd, "-R");
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Renewed ticket. kinit output: {}", output);
+            }
+            reloginFromTicketCache();
+            tgt = getTGT();
+            if (tgt == null) {
+              LOG.warn("No TGT after renewal. Aborting renew thread for " +
+                  getUserName());
+              return;
+            }
+            nextRefresh = Math.max(getRefreshTime(tgt),
+              now + kerberosMinSecondsBeforeRelogin);
+            metrics.renewalFailures.set(0);
+            rp = null;
+          } catch (InterruptedException ie) {
+            LOG.warn("Terminating renewal thread");
             return;
           }
         }
