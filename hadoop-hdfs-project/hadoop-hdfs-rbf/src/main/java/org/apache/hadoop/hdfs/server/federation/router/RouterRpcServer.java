@@ -335,6 +335,9 @@ public class RouterRpcServer extends AbstractService implements ClientProtocol,
     this.rpcServer.addSuppressedLoggingExceptions(
         StandbyException.class);
 
+    this.rpcServer.addSuppressedLoggingExceptions(
+        StandbyException.class);
+
     // The RPC-server port can be ephemeral... ensure we have the correct info
     InetSocketAddress listenAddress = this.rpcServer.getListenerAddress();
     this.rpcAddress = new InetSocketAddress(
