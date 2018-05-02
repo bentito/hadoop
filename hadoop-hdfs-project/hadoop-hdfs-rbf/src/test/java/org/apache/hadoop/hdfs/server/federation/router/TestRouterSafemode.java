@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.server.federation.RouterConfigBuilder;
-import org.apache.hadoop.hdfs.tools.federation.RouterAdmin;
 import org.apache.hadoop.ipc.StandbyException;
 import org.apache.hadoop.service.Service.STATE;
 import org.apache.hadoop.util.Time;
