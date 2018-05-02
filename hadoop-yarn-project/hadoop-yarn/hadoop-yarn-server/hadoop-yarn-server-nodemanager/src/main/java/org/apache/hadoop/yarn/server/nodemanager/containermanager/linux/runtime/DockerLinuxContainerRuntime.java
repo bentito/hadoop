@@ -22,7 +22,6 @@ package org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.Context;
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.docker.DockerCommand;
@@ -377,7 +376,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
       Container container) throws ContainerExecutionException {
     try {
       String commandFile = dockerClient.writeCommandToTempFile(
-          dockerVolumeCommand, container, nmContext);
+          dockerVolumeCommand, container.getContainerId(), nmContext);
       PrivilegedOperation privOp = new PrivilegedOperation(
           PrivilegedOperation.OperationType.RUN_DOCKER_CMD);
       privOp.appendArgs(commandFile);
@@ -938,7 +937,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     }
 
     String commandFile = dockerClient.writeCommandToTempFile(runCommand,
-        container, nmContext);
+        containerId, nmContext);
     PrivilegedOperation launchOp = buildLaunchOp(ctx,
         commandFile, runCommand);
 
@@ -957,8 +956,8 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   @Override
   public void relaunchContainer(ContainerRuntimeContext ctx)
       throws ContainerExecutionException {
-    Container container = ctx.getContainer();
-    String containerIdStr = container.getContainerId().toString();
+    ContainerId containerId = ctx.getContainer().getContainerId();
+    String containerIdStr = containerId.toString();
     // Check to see if the container already exists for relaunch
     DockerCommandExecutor.DockerContainerStatus containerStatus =
         DockerCommandExecutor.getContainerStatus(containerIdStr, conf,
@@ -967,7 +966,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
         DockerCommandExecutor.isStartable(containerStatus)) {
       DockerStartCommand startCommand = new DockerStartCommand(containerIdStr);
       String commandFile = dockerClient.writeCommandToTempFile(startCommand,
-          container, nmContext);
+          containerId, nmContext);
       PrivilegedOperation launchOp = buildLaunchOp(ctx, commandFile,
           startCommand);
 
@@ -1074,7 +1073,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
         new DockerInspectCommand(containerIdStr).getIpAndHost();
     try {
       String commandFile = dockerClient.writeCommandToTempFile(inspectCommand,
-          container, nmContext);
+          containerId, nmContext);
       PrivilegedOperation privOp = new PrivilegedOperation(
           PrivilegedOperation.OperationType.RUN_DOCKER_CMD);
       privOp.appendArgs(commandFile);
