@@ -128,9 +128,9 @@ public final class DockerClient {
     }
   }
 
-  public String writeCommandToTempFile(DockerCommand cmd, Container container,
-      Context nmContext) throws ContainerExecutionException {
-    ContainerId containerId = container.getContainerId();
+  public String writeCommandToTempFile(DockerCommand cmd,
+      ContainerId containerId, Context nmContext)
+      throws ContainerExecutionException {
     String filePrefix = containerId.toString();
     ApplicationId appId = containerId.getApplicationAttemptId()
         .getApplicationId();
