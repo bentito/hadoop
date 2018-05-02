@@ -701,6 +701,12 @@ int main(int argc, char **argv) {
   case INSPECT_DOCKER_CONTAINER:
     exit_code = exec_docker_command("inspect", argv + optind, argc - optind);
     break;
+  case REMOVE_DOCKER_CONTAINER:
+    exit_code = exec_docker_command("rm", argv, argc, optind);
+    break;
+  case INSPECT_DOCKER_CONTAINER:
+    exit_code = exec_docker_command("inspect", argv, argc, optind);
+    break;
   case RUN_AS_USER_INITIALIZE_CONTAINER:
     exit_code = set_user(cmd_input.run_as_user_name);
     if (exit_code != 0) {
