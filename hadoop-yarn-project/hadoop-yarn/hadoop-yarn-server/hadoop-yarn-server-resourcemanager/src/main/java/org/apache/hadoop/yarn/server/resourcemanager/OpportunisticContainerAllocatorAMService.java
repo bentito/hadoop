@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRespons
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.server.api.DistributedSchedulingAMProtocol;
@@ -174,6 +175,16 @@ public class OpportunisticContainerAllocatorAMService
       OpportunisticContainerContext oppCtx =
           appAttempt.getOpportunisticContainerContext();
       oppCtx.updateNodeList(getLeastLoadedNodes());
+
+      if (!partitionedAsks.getOpportunistic().isEmpty()) {
+        String appPartition = appAttempt.getAppAMNodePartitionName();
+
+        for (ResourceRequest req : partitionedAsks.getOpportunistic()) {
+          if (null == req.getNodeLabelExpression()) {
+            req.setNodeLabelExpression(appPartition);
+          }
+        }
+      }
 
       List<Container> oppContainers =
           oppContainerAllocator.allocateContainers(
@@ -438,6 +449,7 @@ public class OpportunisticContainerAllocatorAMService
     if (node != null) {
       RemoteNode rNode = RemoteNode.newInstance(nodeId, node.getHttpAddress());
       rNode.setRackName(node.getRackName());
+      rNode.setNodePartition(node.getPartition());
       return rNode;
     }
     return null;
