@@ -77,13 +77,14 @@ public class TestLoadBalancingKMSClientProvider {
   @Test
   public void testCreation() throws Exception {
     Configuration conf = new Configuration();
+    KMSClientProvider.fallbackDefaultPortForTesting = true;
     KeyProvider kp = new KMSClientProvider.Factory().createProvider(new URI(
-        "kms://http@host1:9600/kms/foo"), conf);
+        "kms://http@host1/kms/foo"), conf);
     assertTrue(kp instanceof LoadBalancingKMSClientProvider);
     KMSClientProvider[] providers =
         ((LoadBalancingKMSClientProvider) kp).getProviders();
     assertEquals(1, providers.length);
-    assertEquals(Sets.newHashSet("http://host1:9600/kms/foo/v1/"),
+    assertEquals(Sets.newHashSet("http://host1/kms/foo/v1/"),
         Sets.newHashSet(providers[0].getKMSUrl()));
 
     kp = new KMSClientProvider.Factory().createProvider(new URI(
@@ -92,9 +93,9 @@ public class TestLoadBalancingKMSClientProvider {
     providers =
         ((LoadBalancingKMSClientProvider) kp).getProviders();
     assertEquals(3, providers.length);
-    assertEquals(Sets.newHashSet("http://host1:9600/kms/foo/v1/",
-        "http://host2:9600/kms/foo/v1/",
-        "http://host3:9600/kms/foo/v1/"),
+    assertEquals(Sets.newHashSet("http://host1/kms/foo/v1/",
+        "http://host2/kms/foo/v1/",
+        "http://host3/kms/foo/v1/"),
         Sets.newHashSet(providers[0].getKMSUrl(),
             providers[1].getKMSUrl(),
             providers[2].getKMSUrl()));
@@ -257,6 +258,7 @@ public class TestLoadBalancingKMSClientProvider {
   @Test
   public void testClassCastException() throws Exception {
     Configuration conf = new Configuration();
+    KMSClientProvider.fallbackDefaultPortForTesting = true;
     KMSClientProvider p1 = new MyKMSClientProvider(
         new URI("kms://http@host1:9600/kms/foo"), conf);
     LoadBalancingKMSClientProvider kp =   new LoadBalancingKMSClientProvider(
