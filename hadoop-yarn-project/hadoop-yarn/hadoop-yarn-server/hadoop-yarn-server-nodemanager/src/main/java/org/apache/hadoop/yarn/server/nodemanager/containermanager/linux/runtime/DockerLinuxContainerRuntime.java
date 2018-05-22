@@ -1225,16 +1225,24 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   private void handleContainerKill(ContainerRuntimeContext ctx,
       Map<String, String> env,
       ContainerExecutor.Signal signal) throws ContainerExecutionException {
-    DockerCommandExecutor.DockerContainerStatus containerStatus =
-        DockerCommandExecutor.getContainerStatus(containerId, conf,
-            privilegedOperationExecutor, nmContext);
-    if (DockerCommandExecutor.isKillable(containerStatus)) {
-      DockerKillCommand dockerKillCommand =
-          new DockerKillCommand(containerId).setSignal(signal.name());
-      DockerCommandExecutor.executeDockerCommand(dockerKillCommand, containerId,
-          env, conf, privilegedOperationExecutor, false, nmContext);
-    } else {
-      if (LOG.isDebugEnabled()) {
+    Container container = ctx.getContainer();
+
+    // Only need to check whether the container was asked to be privileged.
+    // If the container had failed the permissions checks upon launch, it
+    // would have never been launched and thus we wouldn't be here
+    // attempting to signal it.
+    if (isContainerRequestedAsPrivileged(container)) {
+      String containerId = container.getContainerId().toString();
+      DockerCommandExecutor.DockerContainerStatus containerStatus =
+          DockerCommandExecutor.getContainerStatus(containerId, conf,
+          privilegedOperationExecutor, nmContext);
+      if (DockerCommandExecutor.isKillable(containerStatus)) {
+        DockerKillCommand dockerKillCommand =
+            new DockerKillCommand(containerId).setSignal(signal.name());
+        DockerCommandExecutor.executeDockerCommand(dockerKillCommand,
+            containerId, env, conf, privilegedOperationExecutor, false,
+            nmContext);
+      } else {
         LOG.debug(
             "Container status is {}, skipping kill - {}",
             containerStatus.getName(), containerId);
