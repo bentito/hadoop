@@ -230,6 +230,8 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   private Set<String> capabilities;
   private boolean delayedRemovalAllowed;
   private int dockerStopGracePeriod;
+  private Set<String> defaultROMounts = new HashSet<>();
+  private Set<String> defaultRWMounts = new HashSet<>();
 
   /**
    * Return whether the given environment variables indicate that the operation
@@ -339,6 +341,14 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     dockerStopGracePeriod = conf.getInt(
         YarnConfiguration.NM_DOCKER_STOP_GRACE_PERIOD,
         YarnConfiguration.DEFAULT_NM_DOCKER_STOP_GRACE_PERIOD);
+
+    defaultROMounts.addAll(Arrays.asList(
+        conf.getTrimmedStrings(
+        YarnConfiguration.NM_DOCKER_DEFAULT_RO_MOUNTS)));
+
+    defaultRWMounts.addAll(Arrays.asList(
+        conf.getTrimmedStrings(
+        YarnConfiguration.NM_DOCKER_DEFAULT_RW_MOUNTS)));
   }
 
   private Set<String> getDockerCapabilitiesFromConf() throws
