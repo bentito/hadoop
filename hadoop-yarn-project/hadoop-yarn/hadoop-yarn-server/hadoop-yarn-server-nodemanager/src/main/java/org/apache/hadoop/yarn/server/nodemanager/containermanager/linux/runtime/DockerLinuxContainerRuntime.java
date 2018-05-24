@@ -949,6 +949,32 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
       }
     }
 
+    if(defaultROMounts != null && !defaultROMounts.isEmpty()) {
+      for (String mount : defaultROMounts) {
+        String[] dir = StringUtils.split(mount, ':');
+        if (dir.length != 2) {
+          throw new ContainerExecutionException("Invalid mount : " +
+              mount);
+        }
+        String src = dir[0];
+        String dst = dir[1];
+        runCommand.addReadOnlyMountLocation(src, dst);
+      }
+    }
+
+    if(defaultRWMounts != null && !defaultRWMounts.isEmpty()) {
+      for (String mount : defaultRWMounts) {
+        String[] dir = StringUtils.split(mount, ':');
+        if (dir.length != 2) {
+          throw new ContainerExecutionException("Invalid mount : " +
+              mount);
+        }
+        String src = dir[0];
+        String dst = dir[1];
+        runCommand.addReadWriteMountLocation(src, dst);
+      }
+    }
+
     if (allowHostPidNamespace(container)) {
       runCommand.setPidNamespace("host");
     }
