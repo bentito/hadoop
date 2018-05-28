@@ -76,7 +76,11 @@ public class RunJar {
    */
   public static final String HADOOP_CLIENT_CLASSLOADER_SYSTEM_CLASSES =
       "HADOOP_CLIENT_CLASSLOADER_SYSTEM_CLASSES";
-
+  /**
+   * Environment key for disabling unjar in client code.
+   */
+  public static final String HADOOP_CLIENT_SKIP_UNJAR =
+      "HADOOP_CLIENT_SKIP_UNJAR";
   /**
    * Buffer size for copy the content of compressed file to new file.
    */
@@ -93,7 +97,7 @@ public class RunJar {
    * @throws IOException if an I/O error has occurred or toDir
    * cannot be created and does not already exist
    */
-  public static void unJar(File jarFile, File toDir) throws IOException {
+  public void unJar(File jarFile, File toDir) throws IOException {
     unJar(jarFile, toDir, MATCH_ANY);
   }
 
@@ -302,8 +306,9 @@ public class RunJar {
           }
         }, SHUTDOWN_HOOK_PRIORITY);
 
-
-    unJar(file, workDir);
+    if (!skipUnjar()) {
+      unJar(file, workDir);
+    }
 
     ClassLoader loader = createClassLoader(file, workDir);
 
@@ -372,6 +377,10 @@ public class RunJar {
 
   boolean useClientClassLoader() {
     return Boolean.parseBoolean(System.getenv(HADOOP_USE_CLIENT_CLASSLOADER));
+  }
+
+  boolean skipUnjar() {
+    return Boolean.parseBoolean(System.getenv(HADOOP_CLIENT_SKIP_UNJAR));
   }
 
   String getHadoopClasspath() {
