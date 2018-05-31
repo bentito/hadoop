@@ -20,6 +20,7 @@ package org.apache.hadoop.yarn.server.webproxy.amfilter;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.server.webproxy.ProxyUtils;
 import org.apache.hadoop.yarn.server.webproxy.WebAppProxyServlet;
