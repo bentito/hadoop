@@ -196,6 +196,9 @@ public class TestDockerContainerRuntime {
   @Parameterized.Parameter
   public boolean https;
 
+  @Rule
+  public TemporaryFolder tempDir = new TemporaryFolder();
+
   @Before
   public void setup() {
 
