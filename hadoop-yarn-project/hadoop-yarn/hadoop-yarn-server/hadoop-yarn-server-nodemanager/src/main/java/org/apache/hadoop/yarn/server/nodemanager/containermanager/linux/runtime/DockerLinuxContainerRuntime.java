@@ -1199,8 +1199,7 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
     if (!new File(procFs + File.separator + pid).exists()) {
       String msg = "Liveliness check failed for PID: " + pid
           + ". Container may have already completed.";
-      throw new ContainerExecutionException(msg,
-          PrivilegedOperation.ResultCode.INVALID_CONTAINER_PID.getValue());
+      throw new ContainerExecutionException(msg);
     }
   }
 
