@@ -1494,10 +1494,6 @@ public class TestDockerContainerRuntime {
   }
 
   @Test
-  public void testContainerLivelinessCheck()
-      throws ContainerExecutionException, PrivilegedOperationException {
-
-  @Test
   public void testContainerLivelinessFileExistsNoException() throws Exception {
     File testTempDir = tempDir.newFolder();
     File procPidPath = new File(testTempDir + File.separator + signalPid);
@@ -1514,22 +1510,17 @@ public class TestDockerContainerRuntime {
     runtime.signalContainer(builder.build());
   }
 
-  @Test
+  @Test(expected = ContainerExecutionException.class)
   public void testContainerLivelinessNoFileException() throws Exception {
     DockerLinuxContainerRuntime runtime = new DockerLinuxContainerRuntime(
         mockExecutor, mockCGroupsHandler);
     builder.setExecutionAttribute(RUN_AS_USER, runAsUser)
         .setExecutionAttribute(USER, user)
         .setExecutionAttribute(PID, signalPid)
-        .setExecutionAttribute(SIGNAL, ContainerExecutor.Signal.NULL);
+        .setExecutionAttribute(SIGNAL, ContainerExecutor.Signal.NULL)
+        .setExecutionAttribute(PROCFS, testTempDir.getAbsolutePath());
     runtime.initialize(enableMockContainerExecutor(conf), null);
-    try {
-      runtime.signalContainer(builder.build());
-    } catch (ContainerExecutionException e) {
-      Assert.assertEquals(
-          PrivilegedOperation.ResultCode.INVALID_CONTAINER_PID.getValue(),
-          e.getExitCode());
-    }
+    runtime.signalContainer(builder.build());
   }
 
   @Test
