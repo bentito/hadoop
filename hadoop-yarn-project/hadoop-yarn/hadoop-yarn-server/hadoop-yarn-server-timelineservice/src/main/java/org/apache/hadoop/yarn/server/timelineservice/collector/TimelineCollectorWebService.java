@@ -227,14 +227,17 @@ public class TimelineCollectorWebService {
       TimelineCollector collector = collectorManager.get(appID);
       if (collector == null) {
         LOG.error("Application: " + appId + " is not found");
-        throw new NotFoundException(); // different exception?
+        throw new NotFoundException("Application: " + appId + " is not found");
       }
 
       domain.setOwner(callerUgi.getShortUserName());
       collector.putDomain(domain, callerUgi);
 
       return Response.ok().build();
-    } catch (Exception e) {
+    } catch (NotFoundException e) {
+      throw new WebApplicationException(e,
+          Response.Status.INTERNAL_SERVER_ERROR);
+    } catch (IOException e) {
       LOG.error("Error putting entities", e);
       throw new WebApplicationException(e,
           Response.Status.INTERNAL_SERVER_ERROR);
