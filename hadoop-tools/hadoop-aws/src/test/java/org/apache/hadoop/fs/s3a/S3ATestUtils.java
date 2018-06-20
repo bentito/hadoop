@@ -512,6 +512,32 @@ public final class S3ATestUtils {
   }
 
   /**
+   * Patch a configuration for testing.
+   * This includes possibly enabling s3guard, setting up the local
+   * FS temp dir and anything else needed for test runs.
+   * @param conf configuration to patch
+   * @return the now-patched configuration
+   */
+  public static Configuration prepareTestConfiguration(final Configuration conf) {
+    // patch in S3Guard options
+    maybeEnableS3Guard(conf);
+    // set hadoop temp dir to a default value
+    String testUniqueForkId =
+        System.getProperty(TEST_UNIQUE_FORK_ID);
+    String tmpDir = conf.get(HADOOP_TMP_DIR, "target/build/test");
+    if (testUniqueForkId != null) {
+      // patch temp dir for the specific branch
+      tmpDir = tmpDir + File.pathSeparatorChar + testUniqueForkId;
+      conf.set(HADOOP_TMP_DIR, tmpDir);
+    }
+    conf.set(BUFFER_DIR, tmpDir);
+    // add this so that even on tests where the FS is shared,
+    // the FS is always "magic"
+    conf.setBoolean(MAGIC_COMMITTER_ENABLED, true);
+    return conf;
+  }
+
+  /**
    * Helper class to do diffs of metrics.
    */
   public static final class MetricDiff {
