@@ -54,7 +54,6 @@ import org.apache.hadoop.ozone.protocol.commands.SCMCommand;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.util.concurrent.HadoopExecutors;
 
-import com.google.protobuf.GeneratedMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,7 +159,6 @@ public class SCMNodeManager
   private ObjectName nmInfoBean;
 
   // Node pool manager.
-  private final SCMNodePoolManager nodePoolManager;
   private final StorageContainerManager scmManager;
 
   public static final Event<CommandForDatanode> DATANODE_COMMAND =
@@ -211,7 +209,6 @@ public class SCMNodeManager
 
     registerMXBean();
 
-    this.nodePoolManager = new SCMNodePoolManager(conf);
     this.scmManager = scmManager;
   }
 
@@ -683,7 +680,6 @@ public class SCMNodeManager
   @Override
   public void close() throws IOException {
     unregisterMXBean();
-    nodePoolManager.close();
     executorService.shutdown();
     try {
       if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -764,20 +760,6 @@ public class SCMNodeManager
       LOG.info("Leaving startup chill mode.");
     }
 
-    // TODO: define node pool policy for non-default node pool.
-    // For now, all nodes are added to the "DefaultNodePool" upon registration
-    // if it has not been added to any node pool yet.
-    try {
-      if (nodePoolManager.getNodePool(datanodeDetails) == null) {
-        nodePoolManager.addNode(SCMNodePoolManager.DEFAULT_NODEPOOL,
-            datanodeDetails);
-      }
-    } catch (IOException e) {
-      // TODO: make sure registration failure is handled correctly.
-      return RegisteredCommand.newBuilder()
-          .setErrorCode(ErrorCode.errorNodeNotPermitted)
-          .build();
-    }
     // Updating Node Report, as registration is successful
     updateNodeStat(datanodeDetails.getUuid(), nodeReport);
     LOG.info("Data node with ID: {} Registered.",
@@ -861,11 +843,6 @@ public class SCMNodeManager
   @Override
   public SCMNodeMetric getNodeStat(DatanodeDetails datanodeDetails) {
     return new SCMNodeMetric(nodeStats.get(datanodeDetails.getUuid()));
-  }
-
-  @Override
-  public NodePoolManager getNodePoolManager() {
-    return nodePoolManager;
   }
 
   @Override
