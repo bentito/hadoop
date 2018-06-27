@@ -69,13 +69,42 @@ public class OzoneContainer {
    * @throws DiskOutOfSpaceException
    * @throws IOException
    */
-  public OzoneContainer(DatanodeDetails datanodeDetails, OzoneConfiguration
-      conf) throws IOException {
-    this.dnDetails = datanodeDetails;
-    this.config = conf;
-    this.volumeSet = new VolumeSet(datanodeDetails, conf);
-    this.containerSet = new ContainerSet();
-    boolean useGrpc = this.config.getBoolean(
+  public OzoneContainer(
+      DatanodeDetails datanodeDetails, Configuration ozoneConfig)
+      throws IOException {
+    this.ozoneConfig = ozoneConfig;
+    List<StorageLocation> locations = new LinkedList<>();
+    String[] paths = ozoneConfig.getStrings(
+        OzoneConfigKeys.OZONE_METADATA_DIRS);
+    if (paths != null && paths.length > 0) {
+      for (String p : paths) {
+        locations.add(StorageLocation.parse(
+            Paths.get(p).resolve(CONTAINER_ROOT_PREFIX).toString()));
+      }
+    } else {
+      getDataDir(locations);
+    }
+
+    manager = new ContainerManagerImpl();
+    manager.init(this.ozoneConfig, locations, datanodeDetails);
+    this.chunkManager = new ChunkManagerImpl(manager);
+    manager.setChunkManager(this.chunkManager);
+
+    this.keyManager = new KeyManagerImpl(manager, ozoneConfig);
+    manager.setKeyManager(this.keyManager);
+
+    long svcInterval =
+        ozoneConfig.getTimeDuration(OZONE_BLOCK_DELETING_SERVICE_INTERVAL,
+        OZONE_BLOCK_DELETING_SERVICE_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+    long serviceTimeout = ozoneConfig.getTimeDuration(
+        OZONE_BLOCK_DELETING_SERVICE_TIMEOUT,
+        OZONE_BLOCK_DELETING_SERVICE_TIMEOUT_DEFAULT, TimeUnit.MILLISECONDS);
+    this.blockDeletingService = new BlockDeletingService(manager,
+        svcInterval, serviceTimeout, TimeUnit.MILLISECONDS, ozoneConfig);
+
+    this.dispatcher = new Dispatcher(manager, this.ozoneConfig);
+
+    boolean useGrpc = this.ozoneConfig.getBoolean(
         ScmConfigKeys.DFS_CONTAINER_GRPC_ENABLED_KEY,
         ScmConfigKeys.DFS_CONTAINER_GRPC_ENABLED_DEFAULT);
     buildContainerSet();
