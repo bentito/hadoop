@@ -180,6 +180,13 @@ public class DeleteBlocksCommandHandler implements CommandHandler {
           containerData.getMetadataPath());
     }
 
+    if (delTX.getTxID() < containerInfo.getDeleteTransactionId()) {
+      LOG.debug(String.format("Ignoring delete blocks for containerId: %d."
+              + " Outdated delete transactionId %d < %d", containerId,
+          delTX.getTxID(), containerInfo.getDeleteTransactionId()));
+      return;
+    }
+
     int newDeletionBlocks = 0;
     MetadataStore containerDB = KeyUtils.getDB(containerData, conf);
     for (Long blk : delTX.getLocalIDList()) {
@@ -187,10 +194,20 @@ public class DeleteBlocksCommandHandler implements CommandHandler {
       byte[] blkBytes = Longs.toByteArray(blk);
       byte[] blkInfo = containerDB.get(blkBytes);
       if (blkInfo != null) {
+        byte[] deletingKeyBytes =
+            DFSUtil.string2Bytes(OzoneConsts.DELETING_KEY_PREFIX + blk);
+        byte[] deletedKeyBytes =
+            DFSUtil.string2Bytes(OzoneConsts.DELETED_KEY_PREFIX + blk);
+        if (containerDB.get(deletingKeyBytes) != null
+            || containerDB.get(deletedKeyBytes) != null) {
+          LOG.debug(String.format(
+              "Ignoring delete for block %d in container %d."
+                  + " Entry already added.", blk, containerId));
+          continue;
+        }
         // Found the block in container db,
         // use an atomic update to change its state to deleting.
-        batch.put(DFSUtil.string2Bytes(OzoneConsts.DELETING_KEY_PREFIX + blk),
-            blkInfo);
+        batch.put(deletingKeyBytes, blkInfo);
         batch.delete(blkBytes);
         try {
           containerDB.writeBatch(batch);
@@ -208,11 +225,13 @@ public class DeleteBlocksCommandHandler implements CommandHandler {
         LOG.debug("Block {} not found or already under deletion in"
                 + " container {}, skip deleting it.", blk, containerId);
       }
-      containerDB.put(DFSUtil.string2Bytes(
-          OzoneConsts.DELETE_TRANSACTION_KEY_PREFIX + containerId),
-          Longs.toByteArray(delTX.getTxID()));
     }
 
+    containerDB.put(DFSUtil.string2Bytes(
+        OzoneConsts.DELETE_TRANSACTION_KEY_PREFIX + delTX.getContainerID()),
+        Longs.toByteArray(delTX.getTxID()));
+    containerManager
+        .updateDeleteTransactionId(delTX.getContainerID(), delTX.getTxID());
     // update pending deletion blocks count in in-memory container status
     containerData.incrPendingDeletionBlocks(newDeletionBlocks);
   }
