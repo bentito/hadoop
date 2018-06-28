@@ -326,6 +326,26 @@ public class TestRMEmbeddedElector extends ClientBaseWithFixes {
     }
   }
 
+  /**
+   * Test that active elector service triggers a fatal RM Event when connection
+   * to ZK fails. YARN-8409
+   */
+  @Test
+  public void testFailureToConnectToZookeeper() throws Exception {
+    stopServer();
+    Configuration myConf = new Configuration(conf);
+    ResourceManager rm = new MockRM(conf);
+
+    ActiveStandbyElectorBasedElectorService ees =
+        new ActiveStandbyElectorBasedElectorService(rm);
+    try {
+      ees.init(myConf);
+      Assert.fail("expect failure to connect to Zookeeper");
+    } catch (ServiceStateException sse) {
+      Assert.assertTrue(sse.getMessage().contains("ConnectionLoss"));
+    }
+  }
+
   private class MockRMWithElector extends MockRM {
     private long delayMs = 0;
 
