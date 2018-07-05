@@ -2499,4 +2499,11 @@ public class RouterRpcServer extends AbstractService
     checkOperation(OperationCategory.READ, false);
     return StoragePolicySatisfyPathStatus.NOT_AVAILABLE;
   }
+
+  @Override
+  public Long getNextSPSPath() throws IOException {
+    checkOperation(OperationCategory.READ, false);
+    // not supported
+    return null;
+  }
 }
