@@ -316,7 +316,7 @@ public class GetApplicationsRequestPBImpl extends GetApplicationsRequest {
   }
 
   @Override
-  public Range<Long> getStartRange() {
+  public synchronized Range<Long> getStartRange() {
     if (this.start == null) {
       GetApplicationsRequestProtoOrBuilder p = viaProto ? proto: builder;
       if (p.hasStartBegin() || p.hasStartEnd()) {
@@ -329,7 +329,7 @@ public class GetApplicationsRequestPBImpl extends GetApplicationsRequest {
   }
 
   @Override
-  public void setStartRange(Range<Long> range) {
+  public synchronized void setStartRange(Range<Long> range) {
     this.start = range;
   }
 
@@ -344,7 +344,7 @@ public class GetApplicationsRequestPBImpl extends GetApplicationsRequest {
   }
 
   @Override
-  public Range<Long> getFinishRange() {
+  public synchronized Range<Long> getFinishRange() {
     if (this.finish == null) {
       GetApplicationsRequestProtoOrBuilder p = viaProto ? proto: builder;
       if (p.hasFinishBegin() || p.hasFinishEnd()) {
@@ -357,7 +357,7 @@ public class GetApplicationsRequestPBImpl extends GetApplicationsRequest {
   }
 
   @Override
-  public void setFinishRange(Range<Long> range) {
+  public synchronized void setFinishRange(Range<Long> range) {
     this.finish = range;
   }
 
