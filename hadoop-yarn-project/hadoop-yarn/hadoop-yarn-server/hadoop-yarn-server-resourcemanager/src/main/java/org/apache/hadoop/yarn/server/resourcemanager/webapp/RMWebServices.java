@@ -842,7 +842,7 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
   }
 
   @GET
-  @Path("/apps/{appid}/appattempts/{appattemptid}/containers/{containerid}")
+  @Path(RMWSConsts.GET_CONTAINER)
   @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
       MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
   @Override
@@ -856,7 +856,7 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
   }
 
   @GET
-  @Path("/apps/{appid}/state")
+  @Path(RMWSConsts.APPS_APPID_STATE)
   @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
       MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
   @Override
@@ -2309,7 +2309,7 @@ public class RMWebServices extends WebServices implements RMWebServiceProtocol {
   }
 
   @PUT
-  @Path("/scheduler-conf")
+  @Path(RMWSConsts.SCHEDULER_CONF)
   @Produces({ MediaType.APPLICATION_JSON + "; " + JettyUtils.UTF_8,
       MediaType.APPLICATION_XML + "; " + JettyUtils.UTF_8 })
   @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
