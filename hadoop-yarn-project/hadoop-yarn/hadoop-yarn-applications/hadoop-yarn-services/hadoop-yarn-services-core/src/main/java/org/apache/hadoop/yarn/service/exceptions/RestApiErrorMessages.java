@@ -109,4 +109,16 @@ public interface RestApiErrorMessages {
       + "expression element name %s specified in placement policy of component "
       + "%s. Expression element names should be a valid constraint name or an "
       + "expression name defined for this component only.";
+  String ERROR_KEYTAB_URI_SCHEME_INVALID = "Unsupported keytab URI scheme: %s";
+  String ERROR_KEYTAB_URI_INVALID = "Invalid keytab URI: %s";
+
+  String ERROR_COMP_INSTANCE_DOES_NOT_NEED_UPGRADE = "The component instance " +
+      "(%s) does not need an upgrade.";
+
+  String ERROR_COMP_DOES_NOT_NEED_UPGRADE = "The component (%s) does not need" +
+      " an upgrade.";
+  String ERROR_KERBEROS_PRINCIPAL_NAME_FORMAT = "Kerberos principal (%s) does " +
+      " not contain a hostname.";
+  String ERROR_KERBEROS_PRINCIPAL_MISSING = "Kerberos principal or keytab is" +
+      " missing.";
 }
