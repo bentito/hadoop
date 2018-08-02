@@ -1050,6 +1050,11 @@ public class FederationInterceptorREST extends AbstractRESTRequestInterceptor {
   }
 
   @Override
+  public ClusterUserInfo getClusterUserInfo(HttpServletRequest hsr) {
+    throw new NotImplementedException("Code is not implemented");
+  }
+
+  @Override
   public SchedulerTypeInfo getSchedulerInfo() {
     throw new NotImplementedException("Code is not implemented");
   }
