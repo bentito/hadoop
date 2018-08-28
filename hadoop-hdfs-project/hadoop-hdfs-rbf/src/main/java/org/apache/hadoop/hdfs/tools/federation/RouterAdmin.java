@@ -219,6 +219,10 @@ public class RouterAdmin extends Configured implements Tool {
               "Successfully clear quota for mount point " + argv[i]);
         }
       } else if ("-safemode".equals(cmd)) {
+        if (argv.length > 2) {
+          throw new IllegalArgumentException(
+              "Too many arguments, Max=1 argument allowed only");
+        }
         manageSafeMode(argv[i]);
       } else if ("-nameservice".equals(cmd)) {
         String subcmd = argv[i];
@@ -713,6 +717,8 @@ public class RouterAdmin extends Configured implements Tool {
     } else if (cmd.equals("get")) {
       boolean result = getSafeMode();
       System.out.println("Safe Mode: " + result);
+    } else {
+      throw new IllegalArgumentException("Invalid argument: " + cmd);
     }
   }
 
