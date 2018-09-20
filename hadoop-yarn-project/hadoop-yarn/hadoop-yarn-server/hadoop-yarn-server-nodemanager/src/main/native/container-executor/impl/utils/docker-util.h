@@ -79,8 +79,7 @@ char *get_docker_binary(const struct configuration *conf);
  * Get the Docker command line string. The function will inspect the params file to determine the command to be run.
  * @param command_file File containing the params for the Docker command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the Docker command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_command(const char* command_file, const struct configuration* conf, args *args);
@@ -96,8 +95,7 @@ int get_use_entry_point_flag();
  * inspect command.
  * @param command_file File containing the params for the Docker inspect command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the inspect command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_inspect_command(const char* command_file, const struct configuration* conf, args *args);
@@ -106,8 +104,7 @@ int get_docker_inspect_command(const char* command_file, const struct configurat
  * Get the Docker load command line string. The function will verify that the params file is meant for the load command.
  * @param command_file File containing the params for the Docker load command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the load command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_load_command(const char* command_file, const struct configuration* conf, args *args);
@@ -116,8 +113,7 @@ int get_docker_load_command(const char* command_file, const struct configuration
  * Get the Docker pull command line string. The function will verify that the params file is meant for the pull command.
  * @param command_file File containing the params for the Docker pull command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the pull command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_pull_command(const char* command_file, const struct configuration* conf, args *args);
@@ -126,8 +122,7 @@ int get_docker_pull_command(const char* command_file, const struct configuration
  * Get the Docker rm command line string. The function will verify that the params file is meant for the rm command.
  * @param command_file File containing the params for the Docker rm command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the rm command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_rm_command(const char* command_file, const struct configuration* conf, args *args);
@@ -136,8 +131,7 @@ int get_docker_rm_command(const char* command_file, const struct configuration* 
  * Get the Docker run command line string. The function will verify that the params file is meant for the run command.
  * @param command_file File containing the params for the Docker run command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the run command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_run_command(const char* command_file, const struct configuration* conf, args *args);
@@ -146,8 +140,7 @@ int get_docker_run_command(const char* command_file, const struct configuration*
  * Get the Docker stop command line string. The function will verify that the params file is meant for the stop command.
  * @param command_file File containing the params for the Docker stop command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the stop command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_stop_command(const char* command_file, const struct configuration* conf, args *args);
@@ -156,8 +149,7 @@ int get_docker_stop_command(const char* command_file, const struct configuration
  * Get the Docker kill command line string. The function will verify that the params file is meant for the kill command.
  * @param command_file File containing the params for the Docker kill command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the kill command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_kill_command(const char* command_file, const struct configuration* conf, args *args);
@@ -167,8 +159,7 @@ int get_docker_kill_command(const char* command_file, const struct configuration
  * params file is meant for the volume command.
  * @param command_file File containing the params for the Docker volume command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the volume command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_volume_command(const char *command_file, const struct configuration *conf, args *args);
@@ -177,8 +168,7 @@ int get_docker_volume_command(const char *command_file, const struct configurati
  * Get the Docker start command line string. The function will verify that the params file is meant for the start command.
  * @param command_file File containing the params for the Docker start command
  * @param conf Configuration struct containing the container-executor.cfg details
- * @param out Buffer to fill with the start command
- * @param outlen Size of the output buffer
+ * @param args Buffer to construct argv
  * @return Return code with 0 indicating success and non-zero codes indicating error
  */
 int get_docker_start_command(const char* command_file, const struct configuration* conf, args *args);
