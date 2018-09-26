@@ -579,13 +579,23 @@ public class ServiceApiUtil {
   public static void validateInstancesUpgrade(List<Container>
       liveContainers) throws YarnException {
     for (Container liveContainer : liveContainers) {
-      if (!liveContainer.getState().equals(ContainerState.NEEDS_UPGRADE)) {
+      if (!isUpgradable(liveContainer)) {
         // Nothing to upgrade
         throw new YarnException(String.format(
             ERROR_COMP_INSTANCE_DOES_NOT_NEED_UPGRADE,
             liveContainer.getComponentInstanceName()));
       }
     }
+  }
+
+  /**
+   * Returns whether the container can be upgraded in the current state.
+   */
+  public static boolean isUpgradable(Container container) {
+
+    return container.getState() != null &&
+        (container.getState().equals(ContainerState.NEEDS_UPGRADE) ||
+            container.getState().equals(ContainerState.FAILED_UPGRADE));
   }
 
   /**
@@ -605,7 +615,7 @@ public class ServiceApiUtil {
               ERROR_COMP_DOES_NOT_NEED_UPGRADE, liveComp.getName()));
         }
         liveComp.getContainers().forEach(liveContainer -> {
-          if (liveContainer.getState().equals(ContainerState.NEEDS_UPGRADE)) {
+          if (isUpgradable(liveContainer)) {
             containerNeedUpgrade.add(liveContainer);
           }
         });
