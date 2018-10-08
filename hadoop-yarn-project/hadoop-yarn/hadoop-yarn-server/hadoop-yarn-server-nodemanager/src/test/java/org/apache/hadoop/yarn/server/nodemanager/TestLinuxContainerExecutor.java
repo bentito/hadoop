@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.LinuxContainerRuntime;
+import org.apache.hadoop.yarn.server.nodemanager.executor.ContainerExecContext;
 import org.apache.hadoop.yarn.server.nodemanager.executor.ContainerReapContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -695,15 +696,14 @@ public class TestLinuxContainerExecutor {
   }
 
   @Test
-  public void testRelaunchContainer() throws Exception {
-    Container container = mock(Container.class);
+  public void testExecContainer() throws Exception {
     LinuxContainerExecutor lce = mock(LinuxContainerExecutor.class);
-    ContainerStartContext.Builder builder =
-        new ContainerStartContext.Builder();
-    builder.setContainer(container).setUser("foo");
-    ContainerStartContext ctx = builder.build();
-    lce.relaunchContainer(ctx);
-    verify(lce, times(1)).relaunchContainer(ctx);
+    ContainerExecContext.Builder builder =
+        new ContainerExecContext.Builder();
+    builder.setUser("foo").setAppId("app1").setContainer("container1");
+    ContainerExecContext ctx = builder.build();
+    lce.execContainer(ctx);
+    verify(lce, times(1)).execContainer(ctx);
   }
 
   private static class TestResourceHandler implements LCEResourcesHandler {
