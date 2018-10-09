@@ -81,6 +81,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import static org.mockito.Matchers.anyString;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
