@@ -431,7 +431,9 @@ int get_docker_command(const char *command_file, const struct configuration *con
   } else if (strcmp(DOCKER_VOLUME_COMMAND, command) == 0) {
     return get_docker_volume_command(command_file, conf, out, outlen);
   } else if (strcmp(DOCKER_START_COMMAND, command) == 0) {
-    return get_docker_start_command(command_file, conf, out, outlen);
+    ret = get_docker_start_command(command_file, conf, args);
+  } else if (strcmp(DOCKER_EXEC_COMMAND, command) == 0) {
+    ret = get_docker_exec_command(command_file, conf, args);
   } else {
     ret = UNKNOWN_DOCKER_COMMAND;
   }
@@ -820,46 +822,59 @@ free_and_exit:
   return ret;
 }
 
-int get_docker_start_command(const char *command_file, const struct configuration *conf, char *out, const size_t outlen) {
-  int ret = 0;
+int get_docker_exec_command(const char *command_file, const struct configuration *conf, args *args) {
+  int ret = 0, i = 0;
   char *container_name = NULL;
+  char **launch_command = NULL;
   struct configuration command_config = {0, NULL};
-  ret = read_and_verify_command_file(command_file, DOCKER_START_COMMAND, &command_config);
+  ret = read_and_verify_command_file(command_file, DOCKER_EXEC_COMMAND, &command_config);
   if (ret != 0) {
-    return ret;
+    goto free_and_exit;
   }
 
   container_name = get_configuration_value("name", DOCKER_COMMAND_FILE_SECTION, &command_config);
   if (container_name == NULL || validate_container_name(container_name) != 0) {
-    return INVALID_DOCKER_CONTAINER_NAME;
+    ret = INVALID_DOCKER_CONTAINER_NAME;
+    goto free_and_exit;
   }
 
-  memset(out, 0, outlen);
-
-  ret = add_docker_config_param(&command_config, out, outlen);
-  if (ret != 0) {
-    return BUFFER_TOO_SMALL;
-  }
-
-  ret = add_to_buffer(out, outlen, DOCKER_START_COMMAND);
+  ret = add_to_args(args, DOCKER_EXEC_COMMAND);
   if (ret != 0) {
     goto free_and_exit;
   }
-  ret = add_to_buffer(out, outlen, " ");
+
+  ret = add_to_args(args, "-it");
   if (ret != 0) {
     goto free_and_exit;
   }
-  ret = add_to_buffer(out, outlen, container_name);
+
+  ret = add_to_args(args, container_name);
   if (ret != 0) {
     goto free_and_exit;
+  }
+
+  launch_command = get_configuration_values_delimiter("launch-command", DOCKER_COMMAND_FILE_SECTION, &command_config,
+                                                      ",");
+  if (launch_command != NULL) {
+    for (i = 0; launch_command[i] != NULL; ++i) {
+      ret = add_to_args(args, launch_command[i]);
+      if (ret != 0) {
+        ret = BUFFER_TOO_SMALL;
+        goto free_and_exit;
+      }
+    }
+  } else {
+    ret = INVALID_COMMAND_FILE;
   }
 free_and_exit:
   free(container_name);
+  free_configuration(&command_config);
+  free_values(launch_command);
   return ret;
 }
 
-static int detach_container(const struct configuration *command_config, char *out, const size_t outlen) {
-  return add_param_to_command(command_config, "detach", "-d ", 0, out, outlen);
+static int detach_container(const struct configuration *command_config, args *args) {
+  return add_param_to_command(command_config, "detach", "-d", 0, args);
 }
 
 static int  rm_container_on_exit(const struct configuration *command_config, args *args) {
