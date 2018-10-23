@@ -27,7 +27,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.server.federation.RouterConfigBuilder;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+import org.apache.hadoop.hdfs.protocol.DirectoryListing;
+import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.server.federation.MiniRouterDFSCluster.NamenodeContext;
 import org.apache.hadoop.hdfs.server.federation.MiniRouterDFSCluster.RouterContext;
 import org.apache.hadoop.hdfs.server.federation.StateStoreDFSCluster;
@@ -35,7 +38,12 @@ import org.apache.hadoop.hdfs.server.federation.resolver.MountTableManager;
 import org.apache.hadoop.hdfs.server.federation.resolver.MountTableResolver;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.AddMountTableEntryRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.AddMountTableEntryResponse;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.GetMountTableEntriesRequest;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.GetMountTableEntriesResponse;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.RemoveMountTableEntryRequest;
 import org.apache.hadoop.hdfs.server.federation.store.records.MountTable;
+import org.apache.hadoop.util.Time;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -49,9 +57,12 @@ public class TestRouterMountTable {
   private static NamenodeContext nnContext;
   private static RouterContext routerContext;
   private static MountTableResolver mountTable;
+  private static ClientProtocol routerProtocol;
+  private static long startTime;
 
   @BeforeClass
   public static void globalSetUp() throws Exception {
+    startTime = Time.now();
 
     // Build and start a federated cluster
     cluster = new StateStoreDFSCluster(false, 1);
@@ -78,6 +89,21 @@ public class TestRouterMountTable {
       cluster.stopRouter(routerContext);
       cluster.shutdown();
       cluster = null;
+    }
+  }
+
+  @After
+  public void clearMountTable() throws IOException {
+    RouterClient client = routerContext.getAdminClient();
+    MountTableManager mountTableManager = client.getMountTableManager();
+    GetMountTableEntriesRequest req1 =
+        GetMountTableEntriesRequest.newInstance("/");
+    GetMountTableEntriesResponse response =
+        mountTableManager.getMountTableEntries(req1);
+    for (MountTable entry : response.getEntries()) {
+      RemoveMountTableEntryRequest req2 =
+          RemoveMountTableEntryRequest.newInstance(entry.getSourcePath());
+      mountTableManager.removeMountTableEntry(req2);
     }
   }
 
@@ -139,5 +165,100 @@ public class TestRouterMountTable {
     mountTable.loadCache(true);
 
     return addResponse.getStatus();
+  }
+
+  /**
+   * Verify that the file/dir listing contains correct date/time information.
+   */
+  @Test
+  public void testListFilesTime() throws Exception {
+    // Add mount table entry
+    MountTable addEntry = MountTable.newInstance(
+        "/testdir", Collections.singletonMap("ns0", "/testdir"));
+    assertTrue(addMountTable(addEntry));
+    addEntry = MountTable.newInstance(
+        "/testdir2", Collections.singletonMap("ns0", "/testdir2"));
+    assertTrue(addMountTable(addEntry));
+    addEntry = MountTable.newInstance(
+        "/testdir/subdir", Collections.singletonMap("ns0", "/testdir/subdir"));
+    assertTrue(addMountTable(addEntry));
+    addEntry = MountTable.newInstance(
+        "/testdir3/subdir1", Collections.singletonMap("ns0", "/testdir3"));
+    assertTrue(addMountTable(addEntry));
+    addEntry = MountTable.newInstance(
+        "/testA/testB/testC/testD", Collections.singletonMap("ns0", "/test"));
+    assertTrue(addMountTable(addEntry));
+
+    // Create test dir in NN
+    final FileSystem nnFs = nnContext.getFileSystem();
+    assertTrue(nnFs.mkdirs(new Path("/newdir")));
+
+    Map<String, Long> pathModTime = new TreeMap<>();
+    for (String mount : mountTable.getMountPoints("/")) {
+      if (mountTable.getMountPoint("/"+mount) != null) {
+        pathModTime.put(mount, mountTable.getMountPoint("/"+mount)
+            .getDateModified());
+      } else {
+        List<MountTable> entries = mountTable.getMounts("/"+mount);
+        for (MountTable entry : entries) {
+          if (pathModTime.get(mount) == null ||
+              pathModTime.get(mount) < entry.getDateModified()) {
+            pathModTime.put(mount, entry.getDateModified());
+          }
+        }
+      }
+    }
+    FileStatus[] iterator = nnFs.listStatus(new Path("/"));
+    for (FileStatus file : iterator) {
+      pathModTime.put(file.getPath().getName(), file.getModificationTime());
+    }
+    // Fetch listing
+    DirectoryListing listing =
+        routerProtocol.getListing("/", HdfsFileStatus.EMPTY_NAME, false);
+    Iterator<String> pathModTimeIterator = pathModTime.keySet().iterator();
+
+    // Match date/time for each path returned
+    for(HdfsFileStatus f : listing.getPartialListing()) {
+      String fileName = pathModTimeIterator.next();
+      String currentFile = f.getFullPath(new Path("/")).getName();
+      Long currentTime = f.getModificationTime();
+      Long expectedTime = pathModTime.get(currentFile);
+
+      assertEquals(currentFile, fileName);
+      assertTrue(currentTime > startTime);
+      assertEquals(currentTime, expectedTime);
+    }
+    // Verify the total number of results found/matched
+    assertEquals(pathModTime.size(), listing.getPartialListing().length);
+  }
+
+  /**
+   * Verify that the file listing contains correct permission.
+   */
+  @Test
+  public void testMountTablePermissions() throws Exception {
+    // Add mount table entries
+    MountTable addEntry = MountTable.newInstance(
+        "/testdir1", Collections.singletonMap("ns0", "/testdir1"));
+    addEntry.setGroupName("group1");
+    addEntry.setOwnerName("owner1");
+    addEntry.setMode(FsPermission.createImmutable((short)0775));
+    assertTrue(addMountTable(addEntry));
+    addEntry = MountTable.newInstance(
+        "/testdir2", Collections.singletonMap("ns0", "/testdir2"));
+    addEntry.setGroupName("group2");
+    addEntry.setOwnerName("owner2");
+    addEntry.setMode(FsPermission.createImmutable((short)0755));
+    assertTrue(addMountTable(addEntry));
+
+    HdfsFileStatus fs = routerProtocol.getFileInfo("/testdir1");
+    assertEquals("group1", fs.getGroup());
+    assertEquals("owner1", fs.getOwner());
+    assertEquals((short) 0775, fs.getPermission().toShort());
+
+    fs = routerProtocol.getFileInfo("/testdir2");
+    assertEquals("group2", fs.getGroup());
+    assertEquals("owner2", fs.getOwner());
+    assertEquals((short) 0755, fs.getPermission().toShort());
   }
 }
