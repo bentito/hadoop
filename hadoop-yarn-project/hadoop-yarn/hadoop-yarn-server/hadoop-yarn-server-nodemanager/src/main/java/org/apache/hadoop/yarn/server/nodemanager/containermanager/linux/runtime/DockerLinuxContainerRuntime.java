@@ -178,6 +178,12 @@ import static org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.r
  *     This feature is disabled by default. When this feature is disabled or set
  *     to false, the container will be removed as soon as it exits.
  *   </li>
+ *   <li>
+ *     {@code YARN_CONTAINER_RUNTIME_YARN_SYSFS_ENABLE} allows export yarn
+ *     service json to docker container.  This feature is disabled by default.
+ *     when this feature is set, app.json will be available in
+ *     /hadoop/yarn/sysfs/app.json.
+ *   </li>
  * </ul>
  */
 @InterfaceAudience.Private
@@ -230,6 +236,11 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
   @InterfaceAudience.Private
   public static final String ENV_DOCKER_CONTAINER_DELAYED_REMOVAL =
       "YARN_CONTAINER_RUNTIME_DOCKER_DELAYED_REMOVAL";
+  @InterfaceAudience.Private
+  public static final String ENV_DOCKER_CONTAINER_YARN_SYSFS =
+      "YARN_CONTAINER_RUNTIME_YARN_SYSFS_ENABLE";
+  public static final String YARN_SYSFS_PATH =
+      "/hadoop/yarn/sysfs";
   private Configuration conf;
   private Context nmContext;
   private DockerClient dockerClient;
@@ -963,6 +974,12 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
 
     addCGroupParentIfRequired(resourcesOpts, containerIdStr, runCommand);
 
+    if(environment.containsKey(ENV_DOCKER_CONTAINER_YARN_SYSFS) &&
+        Boolean.parseBoolean(environment
+            .get(ENV_DOCKER_CONTAINER_YARN_SYSFS))) {
+      runCommand.setYarnSysFS(true);
+    }
+
     if (useEntryPoint) {
       runCommand.setOverrideDisabled(true);
       runCommand.addEnv(environment);
@@ -1436,4 +1453,5 @@ public class DockerLinuxContainerRuntime implements LinuxContainerRuntime {
       }
     }
   }
+
 }
