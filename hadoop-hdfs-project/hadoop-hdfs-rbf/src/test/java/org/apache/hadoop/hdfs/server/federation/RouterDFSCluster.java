@@ -27,6 +27,8 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_SERVICE_RPC_ADDR
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_SERVICE_RPC_BIND_HOST_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMESERVICES;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMESERVICE_ID;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_HTTP_POLICY_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_HTTPS_ADDRESS_KEY;
 import static org.apache.hadoop.hdfs.server.federation.FederationTestUtils.NAMENODES;
 import static org.apache.hadoop.hdfs.server.federation.FederationTestUtils.addDirectory;
 import static org.apache.hadoop.hdfs.server.federation.FederationTestUtils.waitNamenodeRegistered;
@@ -82,6 +84,7 @@ import org.apache.hadoop.hdfs.server.federation.router.RouterClient;
 import org.apache.hadoop.hdfs.server.namenode.FSImage;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.protocol.NamespaceInfo;
+import org.apache.hadoop.http.HttpConfig;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.Service.STATE;
@@ -246,6 +249,7 @@ public class RouterDFSCluster {
     private int servicePort;
     private int lifelinePort;
     private int httpPort;
+    private int httpsPort;
     private URI fileSystemUri;
     private int index;
     private DFSClient client;
@@ -281,7 +285,12 @@ public class RouterDFSCluster {
       this.rpcPort = nn.getNameNodeAddress().getPort();
       this.servicePort = nn.getServiceRpcAddress().getPort();
       this.lifelinePort = nn.getServiceRpcAddress().getPort();
-      this.httpPort = nn.getHttpAddress().getPort();
+      if (nn.getHttpAddress() != null) {
+        this.httpPort = nn.getHttpAddress().getPort();
+      }
+      if (nn.getHttpsAddress() != null) {
+        this.httpsPort = nn.getHttpsAddress().getPort();
+      }
       this.fileSystemUri = new URI("hdfs://" + namenode.getHostAndPort());
       DistributedFileSystem.setDefaultUri(this.conf, this.fileSystemUri);
 
@@ -304,8 +313,20 @@ public class RouterDFSCluster {
       return namenode.getServiceRpcAddress().getHostName() + ":" + lifelinePort;
     }
 
+    public String getWebAddress() {
+      if (conf.get(DFS_HTTP_POLICY_KEY)
+          .equals(HttpConfig.Policy.HTTPS_ONLY.name())) {
+        return getHttpsAddress();
+      }
+      return getHttpAddress();
+    }
+
     public String getHttpAddress() {
       return namenode.getHttpAddress().getHostName() + ":" + httpPort;
+    }
+
+    public String getHttpsAddress() {
+      return namenode.getHttpsAddress().getHostName() + ":" + httpsPort;
     }
 
     public FileSystem getFileSystem() throws IOException {
@@ -345,22 +366,39 @@ public class RouterDFSCluster {
     }
   }
 
-  public RouterDFSCluster(boolean ha, int numNameservices, int numNamenodes,
-      long heartbeatInterval, long cacheFlushInterval) {
+  public MiniRouterDFSCluster(
+      boolean ha, int numNameservices, int numNamenodes,
+      long heartbeatInterval, long cacheFlushInterval,
+      Configuration overrideConf) {
     this.highAvailability = ha;
     this.heartbeatInterval = heartbeatInterval;
     this.cacheFlushInterval = cacheFlushInterval;
-    configureNameservices(numNameservices, numNamenodes);
+    configureNameservices(numNameservices, numNamenodes, overrideConf);
+  }
+
+  public MiniRouterDFSCluster(
+      boolean ha, int numNameservices, int numNamenodes,
+      long heartbeatInterval, long cacheFlushInterval) {
+    this(ha, numNameservices, numNamenodes,
+        heartbeatInterval, cacheFlushInterval, null);
   }
 
   public RouterDFSCluster(boolean ha, int numNameservices) {
     this(ha, numNameservices, 2,
-        DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS);
+        DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS,
+        null);
   }
 
   public RouterDFSCluster(boolean ha, int numNameservices, int numNamenodes) {
     this(ha, numNameservices, numNamenodes,
-        DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS);
+        DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS,
+        null);
+  }
+
+  public MiniRouterDFSCluster(boolean ha, int numNameservices,
+      Configuration overrideConf) {
+    this(ha, numNameservices, 2,
+        DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_CACHE_INTERVAL_MS, overrideConf);
   }
 
   /**
@@ -417,6 +455,8 @@ public class RouterDFSCluster {
             "127.0.0.1:" + context.httpPort);
         conf.set(DFS_NAMENODE_RPC_BIND_HOST_KEY + "." + suffix,
             "0.0.0.0");
+        conf.set(DFS_NAMENODE_HTTPS_ADDRESS_KEY + "." + suffix,
+            "127.0.0.1:" + context.httpsPort);
 
         // If the service port is enabled by default, we need to set them up
         boolean servicePortEnabled = false;
@@ -510,7 +550,8 @@ public class RouterDFSCluster {
     return conf;
   }
 
-  public void configureNameservices(int numNameservices, int numNamenodes) {
+  public void configureNameservices(int numNameservices, int numNamenodes,
+      Configuration overrideConf) {
     this.nameservices = new ArrayList<>();
     this.namenodes = new ArrayList<>();
 
@@ -521,6 +562,10 @@ public class RouterDFSCluster {
       this.nameservices.add("ns" + i);
 
       Configuration nnConf = generateNamenodeConfiguration(ns);
+      if (overrideConf != null) {
+        nnConf.addResource(overrideConf);
+      }
+
       if (!highAvailability) {
         context = new NamenodeContext(nnConf, ns, null, nnIndex++);
         this.namenodes.add(context);
@@ -731,7 +776,7 @@ public class RouterDFSCluster {
         NamenodeStatusReport report = new NamenodeStatusReport(
             nn.nameserviceId, nn.namenodeId,
             nn.getRpcAddress(), nn.getServiceAddress(),
-            nn.getLifelineAddress(), nn.getHttpAddress());
+            nn.getLifelineAddress(), nn.getWebAddress());
         FSImage fsImage = nn.namenode.getNamesystem().getFSImage();
         NamespaceInfo nsInfo = fsImage.getStorage().getNamespaceInfo();
         report.setNamespaceInfo(nsInfo);
