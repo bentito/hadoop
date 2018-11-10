@@ -46,7 +46,6 @@ import static org.apache.hadoop.yarn.service.conf.RestApiConstants.DEFAULT_UNLIM
 import static org.apache.hadoop.yarn.service.exceptions.RestApiErrorMessages.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Test for ServiceApiUtil helper methods.
@@ -541,7 +540,32 @@ public class TestServiceApiUtil extends ServiceTestUtils {
 
     pc.setTargetTags(Collections.singletonList("comp-a"));
 
-    // now it should succeed
+    // Finally it should succeed
+    try {
+      ServiceApiUtil.validateAndResolveService(app, sfs, CONF_DNS_ENABLED);
+    } catch (IllegalArgumentException e) {
+      Assert.fail(NO_EXCEPTION_PREFIX + e.getMessage());
+    }
+  }
+
+  @Test
+  public void testKerberosPrincipal() throws IOException {
+    SliderFileSystem sfs = ServiceTestUtils.initMockFs();
+    Service app = createValidApplication("comp-a");
+    KerberosPrincipal kp = new KerberosPrincipal();
+    kp.setKeytab("file:///tmp/a.keytab");
+    kp.setPrincipalName("user/_HOST@domain.com");
+    app.setKerberosPrincipal(kp);
+
+    // This should succeed
+    try {
+      ServiceApiUtil.validateKerberosPrincipal(app.getKerberosPrincipal());
+    } catch (IllegalArgumentException e) {
+      Assert.fail(NO_EXCEPTION_PREFIX + e.getMessage());
+    }
+
+    // Keytab with no URI scheme should succeed too
+    kp.setKeytab("/some/path");
     try {
       ServiceApiUtil.validateAndResolveService(app, sfs, CONF_DNS_ENABLED);
     } catch (IllegalArgumentException e) {
