@@ -65,6 +65,7 @@ import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.StorageType;
 import org.apache.hadoop.fs.UnsupportedFileSystemException;
 import org.apache.hadoop.ha.HAServiceProtocol.HAServiceState;
 import org.apache.hadoop.hdfs.DFSClient;
@@ -114,6 +115,8 @@ public class RouterDFSCluster {
   private boolean highAvailability;
   /** Number of datanodes per nameservice. */
   private int numDatanodesPerNameservice = 2;
+  /** Custom storage type for each datanode. */
+  private StorageType[][] storageTypes = null;
 
   /** Mini cluster. */
   private MiniDFSCluster cluster;
@@ -582,6 +585,22 @@ public class RouterDFSCluster {
     this.numDatanodesPerNameservice = num;
   }
 
+  /**
+   * Set custom storage type configuration for each datanode.
+   * If storageTypes is uninitialized or passed null then
+   * StorageType.DEFAULT is used.
+   */
+  public void setStorageTypes(StorageType[][] storageTypes) {
+    this.storageTypes = storageTypes;
+  }
+
+  /**
+   * Set the DNs to belong to only one subcluster.
+   */
+  public void setIndependentDNs() {
+    this.sharedDNs = false;
+  }
+
   public String getNameservicesKey() {
     StringBuilder sb = new StringBuilder();
     for (String nsId : this.nameservices) {
@@ -711,6 +730,8 @@ public class RouterDFSCluster {
       cluster = new MiniDFSCluster.Builder(nnConf)
           .numDataNodes(nameservices.size() * numDatanodesPerNameservice)
           .nnTopology(topology)
+          .dataNodeConfOverlays(dnConfs)
+          .storageTypes(storageTypes)
           .build();
       cluster.waitActive();
 
