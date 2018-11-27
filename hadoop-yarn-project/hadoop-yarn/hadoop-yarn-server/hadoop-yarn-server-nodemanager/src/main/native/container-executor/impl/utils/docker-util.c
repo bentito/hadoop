@@ -167,6 +167,13 @@ static int is_volume_name(const char *volume_name) {
   return execute_regex_match(regex_str, volume_name) == 0;
 }
 
+static int is_valid_ports_mapping(const char *ports_mapping) {
+  const char *regex_str = "^:[0-9]+|^[0-9]+:[0-9]+|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.)"
+                          "{3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]):[0-9]+:[0-9]+$";
+  // execute_regex_match return 0 is matched success
+  return execute_regex_match(regex_str, ports_mapping) == 0;
+}
+
 static int is_volume_name_matched_by_regex(const char* requested, const char* pattern) {
   // execute_regex_match return 0 is matched success
   return is_volume_name(requested) && (execute_regex_match(pattern + sizeof("regex:"), requested) == 0);
@@ -314,6 +321,8 @@ const char *get_docker_error_message(const int error_code) {
       return "Unknown docker command";
     case INVALID_DOCKER_NETWORK:
       return "Invalid docker network";
+    case INVALID_DOCKER_PORTS_MAPPING:
+      return "Invalid docker ports mapping";
     case INVALID_DOCKER_CAPABILITY:
       return "Invalid docker capability";
     case PRIVILEGED_CONTAINERS_DISABLED:
@@ -1508,6 +1517,11 @@ int get_docker_run_command(const char *command_file, const struct configuration 
   }
 
   ret = set_network(&command_config, conf, args);
+  if (ret != 0) {
+    goto free_and_exit;
+  }
+
+  ret = add_ports_mapping_to_command(&command_config, args);
   if (ret != 0) {
     goto free_and_exit;
   }
