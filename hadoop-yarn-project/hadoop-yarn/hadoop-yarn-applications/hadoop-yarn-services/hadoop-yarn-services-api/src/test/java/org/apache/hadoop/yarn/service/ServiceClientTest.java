@@ -45,6 +45,25 @@ public class ServiceClientTest extends ServiceClient {
   }
 
   @Override
+  public void init(Configuration conf) {
+    if (!initialized) {
+      super.init(conf);
+      initialized = true;
+    }
+  }
+
+  @Override
+  public void stop() {
+    // This is needed for testing  API Server which uses client to get status
+    // and then perform an action.
+  }
+
+  public void forceStop() {
+    expectedInstances.clear();
+    stop();
+  }
+
+  @Override
   public Configuration getConfig() {
     return conf;
   }
