@@ -55,6 +55,8 @@ import org.apache.hadoop.hdfs.server.federation.store.protocol.GetSafeModeReques
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetSafeModeResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.LeaveSafeModeRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.LeaveSafeModeResponse;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.RefreshMountTableEntriesRequest;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.RefreshMountTableEntriesResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.RemoveMountTableEntryRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.RemoveMountTableEntryResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.UpdateMountTableEntryRequest;
@@ -108,7 +110,8 @@ public class RouterAdmin extends Configured implements Tool {
     if (cmd == null) {
       String[] commands =
           {"-add", "-update", "-rm", "-ls", "-setQuota", "-clrQuota",
-              "-safemode", "-nameservice", "-getDisabledNameservices"};
+              "-safemode", "-nameservice", "-getDisabledNameservices",
+              "-refresh"};
       StringBuilder usage = new StringBuilder();
       usage.append("Usage: hdfs dfsrouteradmin :\n");
       for (int i = 0; i < commands.length; i++) {
@@ -143,6 +146,8 @@ public class RouterAdmin extends Configured implements Tool {
       return "\t[-nameservice enable | disable <nameservice>]";
     } else if (cmd.equals("-getDisabledNameservices")) {
       return "\t[-getDisabledNameservices]";
+    } else if (cmd.equals("-refresh")) {
+      return "\t[-refresh]";
     }
     return getUsage(null);
   }
@@ -231,9 +236,10 @@ public class RouterAdmin extends Configured implements Tool {
       printUsage(cmd);
       return exitCode;
     }
+    String address = null;
     // Initialize RouterClient
     try {
-      String address = getConf().getTrimmed(
+      address = getConf().getTrimmed(
           RBFConfigKeys.DFS_ROUTER_ADMIN_ADDRESS_KEY,
           RBFConfigKeys.DFS_ROUTER_ADMIN_ADDRESS_DEFAULT);
       InetSocketAddress routerSocket = NetUtils.createSocketAddr(address);
@@ -303,6 +309,8 @@ public class RouterAdmin extends Configured implements Tool {
         manageNameservice(subcmd, nsId);
       } else if ("-getDisabledNameservices".equals(cmd)) {
         getDisabledNameservices();
+      } else if ("-refresh".equals(cmd)) {
+        refresh(address);
       } else {
         throw new IllegalArgumentException("Unknown Command: " + cmd);
       }
@@ -337,6 +345,27 @@ public class RouterAdmin extends Configured implements Tool {
     }
     return exitCode;
   }
+
+  private void refresh(String address) throws IOException {
+    if (refreshRouterCache()) {
+      System.out.println(
+          "Successfully updated mount table cache on router " + address);
+    }
+  }
+
+  /**
+   * Refresh mount table cache on connected router.
+   *
+   * @return true if cache refreshed successfully
+   * @throws IOException
+   */
+  private boolean refreshRouterCache() throws IOException {
+    RefreshMountTableEntriesResponse response =
+        client.getMountTableManager().refreshMountTableEntries(
+            RefreshMountTableEntriesRequest.newInstance());
+    return response.getResult();
+  }
+
 
   /**
    * Add a mount table entry or update if it exists.
