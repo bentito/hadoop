@@ -21,7 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.fs.FSExceptionMessages;
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result;
-import org.apache.hadoop.hdds.client.BlockID;
 import org.apache.hadoop.hdds.scm.container.common.helpers.ContainerNotOpenException;
 import org.apache.hadoop.hdds.scm.container.common.helpers.ContainerWithPipeline;
 import org.apache.hadoop.hdds.scm.pipeline.Pipeline;
@@ -202,11 +201,23 @@ public class KeyOutputStream extends OutputStream {
       throws IOException {
     ContainerWithPipeline containerWithPipeline = scmClient
         .getContainerWithPipeline(subKeyInfo.getContainerID());
-    streamEntries.add(new BlockOutputStreamEntry(subKeyInfo.getBlockID(),
-        keyArgs.getKeyName(), xceiverClientManager,
-        containerWithPipeline.getPipeline(), requestID, chunkSize,
-        subKeyInfo.getLength(), streamBufferFlushSize, streamBufferMaxSize,
-        watchTimeout, bufferList, checksum));
+    UserGroupInformation.getCurrentUser().addToken(subKeyInfo.getToken());
+    BlockOutputStreamEntry.Builder builder =
+        new BlockOutputStreamEntry.Builder()
+            .setBlockID(subKeyInfo.getBlockID())
+            .setKey(keyArgs.getKeyName())
+            .setXceiverClientManager(xceiverClientManager)
+            .setPipeline(containerWithPipeline.getPipeline())
+            .setRequestId(requestID)
+            .setChunkSize(chunkSize)
+            .setLength(subKeyInfo.getLength())
+            .setStreamBufferFlushSize(streamBufferFlushSize)
+            .setStreamBufferMaxSize(streamBufferMaxSize)
+            .setWatchTimeout(watchTimeout)
+            .setBufferList(bufferList)
+            .setChecksum(checksum)
+            .setToken(subKeyInfo.getToken());
+    streamEntries.add(builder.build());
   }
 
   @Override
