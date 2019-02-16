@@ -20,6 +20,7 @@ package org.apache.hadoop.ozone.client.io;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.fs.FSExceptionMessages;
+import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result;
 import org.apache.hadoop.hdds.scm.container.common.helpers.ContainerNotOpenException;
 import org.apache.hadoop.hdds.scm.container.common.helpers.ContainerWithPipeline;
@@ -82,6 +83,8 @@ public class KeyOutputStream extends OutputStream {
   private final Checksum checksum;
   private List<ByteBuffer> bufferList;
   private OmMultipartCommitUploadPartInfo commitUploadPartInfo;
+  private FileEncryptionInfo feInfo;
+
   /**
    * A constructor for testing purpose only.
    */
@@ -146,6 +149,9 @@ public class KeyOutputStream extends OutputStream {
     this.omClient = omClient;
     this.scmClient = scmClient;
     OmKeyInfo info = handler.getKeyInfo();
+    // Retrieve the file encryption key info, null if file is not in
+    // encrypted bucket.
+    this.feInfo = info.getFileEncryptionInfo();
     this.keyArgs = new OmKeyArgs.Builder().setVolumeName(info.getVolumeName())
         .setBucketName(info.getBucketName()).setKeyName(info.getKeyName())
         .setType(type).setFactor(factor).setDataSize(info.getDataSize())
@@ -546,6 +552,10 @@ public class KeyOutputStream extends OutputStream {
 
   public OmMultipartCommitUploadPartInfo getCommitUploadPartInfo() {
     return commitUploadPartInfo;
+  }
+
+  public FileEncryptionInfo getFileEncryptionInfo() {
+    return feInfo;
   }
 
   /**
