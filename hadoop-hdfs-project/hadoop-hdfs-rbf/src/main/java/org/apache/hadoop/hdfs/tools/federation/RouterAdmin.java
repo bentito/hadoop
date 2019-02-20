@@ -53,6 +53,8 @@ import org.apache.hadoop.hdfs.server.federation.store.protocol.EnterSafeModeRequ
 import org.apache.hadoop.hdfs.server.federation.store.protocol.EnterSafeModeResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDisabledNameservicesRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDisabledNameservicesResponse;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDestinationRequest;
+import org.apache.hadoop.hdfs.server.federation.store.protocol.GetDestinationResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetMountTableEntriesRequest;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetMountTableEntriesResponse;
 import org.apache.hadoop.hdfs.server.federation.store.protocol.GetSafeModeRequest;
@@ -118,7 +120,8 @@ public class RouterAdmin extends Configured implements Tool {
   private String getUsage(String cmd) {
     if (cmd == null) {
       String[] commands =
-          {"-add", "-update", "-rm", "-ls", "-setQuota", "-clrQuota",
+          {"-add", "-update", "-rm", "-ls", "-getDestination",
+              "-setQuota", "-clrQuota",
               "-safemode", "-nameservice", "-getDisabledNameservices",
               "-refresh"};
       StringBuilder usage = new StringBuilder();
@@ -144,6 +147,8 @@ public class RouterAdmin extends Configured implements Tool {
       return "\t[-rm <source>]";
     } else if (cmd.equals("-ls")) {
       return "\t[-ls <path>]";
+    } else if (cmd.equals("-getDestination")) {
+      return "\t[-getDestination <path>]";
     } else if (cmd.equals("-setQuota")) {
       return "\t[-setQuota <path> -nsQuota <nsQuota> -ssQuota "
           + "<quota in bytes or quota size string>]";
@@ -172,6 +177,11 @@ public class RouterAdmin extends Configured implements Tool {
       if (arg.length > 2) {
         throw new IllegalArgumentException(
             "Too many arguments, Max=1 argument allowed");
+      }
+    } else if (arg[0].equals("-getDestination")) {
+      if (arg.length > 2) {
+        throw new IllegalArgumentException(
+            "Too many arguments, Max=1 argument allowed only");
       }
     } else if (arg[0].equals("-safemode")) {
       if (arg.length > 2) {
@@ -206,6 +216,10 @@ public class RouterAdmin extends Configured implements Tool {
         return false;
       }
     } else if ("-rm".equals(cmd)) {
+      if (argv.length < 2) {
+        return false;
+      }
+    } else if ("-getDestination".equals(cmd)) {
       if (argv.length < 2) {
         return false;
       }
@@ -303,6 +317,8 @@ public class RouterAdmin extends Configured implements Tool {
         } else {
           listMounts("/");
         }
+      } else if ("-getDestination".equals(cmd)) {
+        getDestination(argv[i]);
       } else if ("-setQuota".equals(cmd)) {
         if (setQuota(argv, i)) {
           System.out.println(
@@ -708,6 +724,16 @@ public class RouterAdmin extends Configured implements Tool {
 
       System.out.println(String.format(" %-25s", entry.getQuota()));
     }
+  }
+
+  private void getDestination(String path) throws IOException {
+    path = normalizeFileSystemPath(path);
+    MountTableManager mountTable = client.getMountTableManager();
+    GetDestinationRequest request =
+        GetDestinationRequest.newInstance(path);
+    GetDestinationResponse response = mountTable.getDestination(request);
+    System.out.println("Destination: " +
+        StringUtils.join(",", response.getDestinations()));
   }
 
   /**
