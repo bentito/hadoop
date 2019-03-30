@@ -136,12 +136,12 @@ public class RouterAdmin extends Configured implements Tool {
     }
     if (cmd.equals("-add")) {
       return "\t[-add <source> <nameservice1, nameservice2, ...> <destination> "
-          + "[-readonly] [-order HASH|LOCAL|RANDOM|HASH_ALL] "
+          + "[-readonly] [-faulttolerant] [-order HASH|LOCAL|RANDOM|HASH_ALL] "
           + "-owner <owner> -group <group> -mode <mode>]";
     } else if (cmd.equals("-update")) {
       return "\t[-update <source> <nameservice1, nameservice2, ...> "
           + "<destination> "
-          + "[-readonly] [-order HASH|LOCAL|RANDOM|HASH_ALL] "
+          + "[-readonly] [-faulttolerant] [-order HASH|LOCAL|RANDOM|HASH_ALL] "
           + "-owner <owner> -group <group> -mode <mode>]";
     } else if (cmd.equals("-rm")) {
       return "\t[-rm <source>]";
@@ -416,6 +416,7 @@ public class RouterAdmin extends Configured implements Tool {
 
     // Optional parameters
     boolean readOnly = false;
+    boolean faultTolerant = false;
     String owner = null;
     String group = null;
     FsPermission mode = null;
@@ -423,6 +424,8 @@ public class RouterAdmin extends Configured implements Tool {
     while (i < parameters.length) {
       if (parameters[i].equals("-readonly")) {
         readOnly = true;
+      } else if (parameters[i].equals("-faulttolerant")) {
+        faultTolerant = true;
       } else if (parameters[i].equals("-order")) {
         i++;
         try {
@@ -448,7 +451,7 @@ public class RouterAdmin extends Configured implements Tool {
       i++;
     }
 
-    return addMount(mount, nss, dest, readOnly, order,
+    return addMount(mount, nss, dest, readOnly, faultTolerant, order,
         new ACLEntity(owner, group, mode));
   }
 
@@ -465,7 +468,8 @@ public class RouterAdmin extends Configured implements Tool {
    * @throws IOException Error adding the mount point.
    */
   public boolean addMount(String mount, String[] nss, String dest,
-      boolean readonly, DestinationOrder order, ACLEntity aclInfo)
+      boolean readonly, boolean faultTolerant, DestinationOrder order,
+      ACLEntity aclInfo)
       throws IOException {
     mount = normalizeFileSystemPath(mount);
     // Get the existing entry
@@ -492,6 +496,9 @@ public class RouterAdmin extends Configured implements Tool {
       if (readonly) {
         newEntry.setReadOnly(true);
       }
+      if (faultTolerant) {
+        newEntry.setFaultTolerant(true);
+      }
       if (order != null) {
         newEntry.setDestOrder(order);
       }
@@ -508,6 +515,8 @@ public class RouterAdmin extends Configured implements Tool {
       if (aclInfo.getMode() != null) {
         newEntry.setMode(aclInfo.getMode());
       }
+
+      newEntry.validate();
 
       AddMountTableEntryRequest request =
           AddMountTableEntryRequest.newInstance(newEntry);
@@ -528,6 +537,9 @@ public class RouterAdmin extends Configured implements Tool {
       if (readonly) {
         existingEntry.setReadOnly(true);
       }
+      if (faultTolerant) {
+        existingEntry.setFaultTolerant(true);
+      }
       if (order != null) {
         existingEntry.setDestOrder(order);
       }
@@ -544,6 +556,8 @@ public class RouterAdmin extends Configured implements Tool {
       if (aclInfo.getMode() != null) {
         existingEntry.setMode(aclInfo.getMode());
       }
+
+      existingEntry.validate();
 
       UpdateMountTableEntryRequest updateRequest =
           UpdateMountTableEntryRequest.newInstance(existingEntry);
@@ -573,6 +587,7 @@ public class RouterAdmin extends Configured implements Tool {
 
     // Optional parameters
     boolean readOnly = false;
+    boolean faultTolerant = false;
     String owner = null;
     String group = null;
     FsPermission mode = null;
@@ -580,6 +595,8 @@ public class RouterAdmin extends Configured implements Tool {
     while (i < parameters.length) {
       if (parameters[i].equals("-readonly")) {
         readOnly = true;
+      } else if (parameters[i].equals("-faulttolerant")) {
+        faultTolerant = true;
       } else if (parameters[i].equals("-order")) {
         i++;
         try {
@@ -605,7 +622,7 @@ public class RouterAdmin extends Configured implements Tool {
       i++;
     }
 
-    return updateMount(mount, nss, dest, readOnly, order,
+    return updateMount(mount, nss, dest, readOnly, faultTolerant, order,
         new ACLEntity(owner, group, mode));
   }
 
@@ -622,7 +639,8 @@ public class RouterAdmin extends Configured implements Tool {
    * @throws IOException Error updating the mount point.
    */
   public boolean updateMount(String mount, String[] nss, String dest,
-      boolean readonly, DestinationOrder order, ACLEntity aclInfo)
+      boolean readonly, boolean faultTolerant,
+      DestinationOrder order, ACLEntity aclInfo)
       throws IOException {
     mount = normalizeFileSystemPath(mount);
     MountTableManager mountTable = client.getMountTableManager();
@@ -635,6 +653,7 @@ public class RouterAdmin extends Configured implements Tool {
     MountTable newEntry = MountTable.newInstance(mount, destMap);
 
     newEntry.setReadOnly(readonly);
+    newEntry.setFaultTolerant(faultTolerant);
 
     if (order != null) {
       newEntry.setDestOrder(order);
