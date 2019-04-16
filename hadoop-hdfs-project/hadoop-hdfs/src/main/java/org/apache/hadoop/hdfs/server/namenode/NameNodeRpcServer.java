@@ -1305,7 +1305,6 @@ public class NameNodeRpcServer implements NamenodeProtocols {
   @Override // NamenodeProtocol
   public CheckpointSignature rollEditLog() throws IOException {
     checkNNStartup();
-    namesystem.checkSuperuserPrivilege();
     return namesystem.rollEditLog();
   }
   
