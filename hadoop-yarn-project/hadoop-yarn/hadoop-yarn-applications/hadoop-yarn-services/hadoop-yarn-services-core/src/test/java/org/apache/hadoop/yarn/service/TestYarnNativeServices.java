@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.apache.hadoop.yarn.api.records.YarnApplicationState.FINISHED;
 import static org.apache.hadoop.yarn.service.conf.YarnServiceConf.YARN_SERVICE_BASE_PATH;
 import static org.apache.hadoop.yarn.service.exceptions.LauncherExitCodes.EXIT_COMMAND_ARGUMENT_ERROR;
@@ -1000,7 +1001,7 @@ public class TestYarnNativeServices extends ServiceTestUtils {
 
     int i = 0;
     for (String s : instances) {
-      Assert.assertEquals(component.getName() + "-" + i, s);
+      assertThat(s).isEqualTo(component.getName() + "-" + i);
       i++;
     }
   }
