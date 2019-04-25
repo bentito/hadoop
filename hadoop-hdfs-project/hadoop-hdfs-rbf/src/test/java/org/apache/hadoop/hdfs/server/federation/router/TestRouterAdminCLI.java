@@ -242,6 +242,7 @@ public class TestRouterAdminCLI {
     testAddOrderMountTable(DestinationOrder.LOCAL);
     testAddOrderMountTable(DestinationOrder.RANDOM);
     testAddOrderMountTable(DestinationOrder.HASH_ALL);
+    testAddOrderMountTable(DestinationOrder.SPACE);
   }
 
   @Test
@@ -528,7 +529,7 @@ public class TestRouterAdminCLI {
     assertTrue("Wrong message: " + out, out.toString().contains(
         "\t[-add <source> <nameservice1, nameservice2, ...> <destination> "
             + "[-readonly] [-faulttolerant] "
-            + "[-order HASH|LOCAL|RANDOM|HASH_ALL] "
+            + "[-order HASH|LOCAL|RANDOM|HASH_ALL|SPACE] "
             + "-owner <owner> -group <group> -mode <mode>]"));
     out.reset();
 
@@ -537,7 +538,7 @@ public class TestRouterAdminCLI {
     assertTrue("Wrong message: " + out, out.toString().contains(
         "\t[-update <source> [<nameservice1, nameservice2, ...> <destination>] "
             + "[-readonly true|false] [-faulttolerant true|false] "
-            + "[-order HASH|LOCAL|RANDOM|HASH_ALL] "
+            + "[-order HASH|LOCAL|RANDOM|HASH_ALL|SPACE] "
             + "-owner <owner> -group <group> -mode <mode>]"));
     out.reset();
 
@@ -578,11 +579,13 @@ public class TestRouterAdminCLI {
     assertEquals(-1, ToolRunner.run(admin, argv));
     String expected = "Usage: hdfs dfsrouteradmin :\n"
         + "\t[-add <source> <nameservice1, nameservice2, ...> <destination> "
-        + "[-readonly] [-faulttolerant] [-order HASH|LOCAL|RANDOM|HASH_ALL] "
+        + "[-readonly] [-faulttolerant] "
+        + "[-order HASH|LOCAL|RANDOM|HASH_ALL|SPACE] "
         + "-owner <owner> -group <group> -mode <mode>]\n"
         + "\t[-update <source> [<nameservice1, nameservice2, ...> "
         + "<destination>] [-readonly true|false]"
-        + " [-faulttolerant true|false] [-order HASH|LOCAL|RANDOM|HASH_ALL] "
+        + " [-faulttolerant true|false] "
+        + "[-order HASH|LOCAL|RANDOM|HASH_ALL|SPACE] "
         + "-owner <owner> -group <group> -mode <mode>]\n" + "\t[-rm <source>]\n"
         + "\t[-ls <path>]\n"
         + "\t[-getDestination <path>]\n"
@@ -1138,6 +1141,7 @@ public class TestRouterAdminCLI {
     testUpdateOrderMountTable(DestinationOrder.LOCAL);
     testUpdateOrderMountTable(DestinationOrder.RANDOM);
     testUpdateOrderMountTable(DestinationOrder.HASH_ALL);
+    testUpdateOrderMountTable(DestinationOrder.SPACE);
   }
 
   @Test
