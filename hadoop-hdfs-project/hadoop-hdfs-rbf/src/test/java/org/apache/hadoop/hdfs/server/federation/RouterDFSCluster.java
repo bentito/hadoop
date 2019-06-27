@@ -132,6 +132,8 @@ public class RouterDFSCluster {
   /** Cache flush interval in milliseconds. */
   private long cacheFlushInterval;
 
+  /** Router configuration initializes. */
+  private Configuration routerConf;
   /** Router configuration overrides. */
   private Configuration routerOverrides;
   /** Namenode configuration overrides. */
@@ -504,7 +506,12 @@ public class RouterDFSCluster {
    */
   public Configuration generateRouterConfiguration(String nsId, String nnId) {
 
-    Configuration conf = new HdfsConfiguration(false);
+    Configuration conf;
+    if (this.routerConf == null) {
+      conf = new Configuration(false);
+    } else {
+      conf = new Configuration(routerConf);
+    }
     conf.addResource(generateNamenodeConfiguration(nsId));
 
     conf.setInt(DFS_ROUTER_HANDLER_COUNT_KEY, 10);
@@ -731,6 +738,8 @@ public class RouterDFSCluster {
       Configuration nnConf = generateNamenodeConfiguration(ns0);
       if (overrideConf != null) {
         nnConf.addResource(overrideConf);
+        // Router also uses this configurations as initial values.
+        routerConf = new Configuration(overrideConf);
       }
       cluster = new MiniDFSCluster.Builder(nnConf)
           .numDataNodes(nameservices.size() * numDatanodesPerNameservice)
