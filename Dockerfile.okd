@@ -56,9 +56,9 @@ FROM registry.access.redhat.com/ubi7/ubi
 # our copy of faq and jq
 COPY faq.repo /etc/yum.repos.d/ecnahc515-faq-epel-7.repo
 
+
+RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 RUN yum install --setopt=skip_missing_names_on_install=False -y \
-        epel-release \
-    && yum install --setopt=skip_missing_names_on_install=False -y \
         java-1.8.0-openjdk \
         java-1.8.0-openjdk-devel \
         curl \
