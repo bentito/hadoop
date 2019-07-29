@@ -54,7 +54,7 @@ RUN scl enable rh-maven33 'mvn dependency:get -Dartifact=io.prometheus.jmx:jmx_p
 # Get gcs-connector for Hadoop
 RUN scl enable rh-maven33 'cd /build && mvn dependency:get -Dartifact=com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.0.0-RC2:jar && mv $HOME/.m2/repository/com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.0.0-RC2/gcs-connector-hadoop3-2.0.0-RC2.jar /build/gcs-connector-hadoop3-2.0.0-RC2.jar'
 
-FROM registry.access.redhat.com/ubi7/ubi
+FROM quay.io/openshift/origin-base:latest
 
 # our copy of faq and jq
 COPY faq.repo /etc/yum.repos.d/ecnahc515-faq-epel-7.repo
