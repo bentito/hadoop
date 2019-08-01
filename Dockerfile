@@ -76,6 +76,10 @@ RUN yum -y update && \
     && yum clean all \
     && rm -rf /tmp/* /var/tmp/*
 
+ENV TINI_VERSION v0.18.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
+RUN chmod +x /usr/bin/tini
+
 ENV JAVA_HOME=/etc/alternatives/jre
 
 ENV HADOOP_VERSION 3.1.1
