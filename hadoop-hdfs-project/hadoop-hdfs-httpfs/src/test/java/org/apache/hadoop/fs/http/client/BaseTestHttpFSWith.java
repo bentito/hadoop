@@ -668,6 +668,8 @@ public abstract class BaseTestHttpFSWith extends HFSTestCase {
     fs.close();
     assertEquals(hdfsContentSummary.getDirectoryCount(),
         httpContentSummary.getDirectoryCount());
+    assertEquals(hdfsContentSummary.getErasureCodingPolicy(),
+        httpContentSummary.getErasureCodingPolicy());
     assertEquals(hdfsContentSummary.getFileCount(),
         httpContentSummary.getFileCount());
     assertEquals(hdfsContentSummary.getLength(),
