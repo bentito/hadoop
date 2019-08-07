@@ -56,8 +56,7 @@ RUN scl enable rh-maven33 'cd /build && mvn dependency:get -Dartifact=com.google
 
 FROM quay.io/openshift/origin-base:latest
 
-RUN yum -y update && \
-    yum install --setopt=skip_missing_names_on_install=False -y \
+RUN set -x; yum install --setopt=skip_missing_names_on_install=False -y \
         java-1.8.0-openjdk \
         java-1.8.0-openjdk-devel \
         curl \

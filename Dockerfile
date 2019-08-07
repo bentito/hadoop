@@ -59,8 +59,7 @@ FROM centos:7
 COPY faq.repo /etc/yum.repos.d/ecnahc515-faq-epel-7.repo
 
 RUN yum install --setopt=skip_missing_names_on_install=False -y epel-release
-RUN yum -y update && \
-    yum install --setopt=skip_missing_names_on_install=False -y \
+RUN set -x; yum install --setopt=skip_missing_names_on_install=False -y \
         java-1.8.0-openjdk \
         java-1.8.0-openjdk-devel \
         curl \
