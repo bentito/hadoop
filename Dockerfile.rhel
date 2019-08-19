@@ -37,6 +37,19 @@ RUN set -x; curl -fSLs \
     $PROMETHEUS_JMX_EXPORTER_URL \
     -o $PROMETHEUS_JMX_EXPORTER_OUT
 
+ENV GOOGLE_BIGDATA_OSS_VERSION 1.9.17
+ENV RH_GOOGLE_BIGDATA_OSS_PATCH_VERSION 00002
+ENV RH_GOOGLE_BIGDATA_OSS_BREW_DIR ${GOOGLE_BIGDATA_OSS_VERSION}.redhat_${RH_GOOGLE_BIGDATA_OSS_PATCH_VERSION}
+ENV RH_GCS_CONNECTOR_PATCH_VERSION 00001
+ENV RH_GCS_CONNECTOR_VERSION ${GOOGLE_BIGDATA_OSS_VERSION}.hadoop3-redhat-${RH_GCS_CONNECTOR_PATCH_VERSION}
+ENV GCS_CONNECTOR_OUT /build/gcs-connector-hadoop3-shaded.jar
+
+ARG GCS_CONNECTOR_URL=http://download.eng.bos.redhat.com/brewroot/packages/com.google.cloud.bigdataoss-bigdataoss-parent/${RH_GOOGLE_BIGDATA_OSS_BREW_DIR}/1/maven/com/google/cloud/bigdataoss/gcs-connector/${RH_GCS_CONNECTOR_VERSION}/gcs-connector-${RH_GCS_CONNECTOR_VERSION}-shaded.jar
+
+RUN set -x; curl -fSLs \
+    $GCS_CONNECTOR_URL \
+    -o $GCS_CONNECTOR_OUT
+
 FROM rhel7:7-released
 
 RUN set -x; yum install --setopt=skip_missing_names_on_install=False -y \
@@ -69,6 +82,7 @@ ENV PATH=$HADOOP_HOME/bin:$PATH
 
 COPY --from=build /build/hadoop-dist/target/hadoop-$HADOOP_VERSION $HADOOP_HOME
 COPY --from=build /build/jmx_prometheus_javaagent.jar $PROMETHEUS_JMX_EXPORTER
+COPY --from=build /build/gcs-connector-hadoop3-shaded.jar $HADOOP_HOME/share/hadoop/tools/lib/build/gcs-connector-hadoop3-shaded.jar
 WORKDIR $HADOOP_HOME
 
 # remove unnecessary doc/src files
