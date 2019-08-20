@@ -2,7 +2,7 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-: "${REPO_FILE:?}"
+: "${REPO_DIR:?}"
 : "${SUB_MGR_FILE:?}"
 : "${IMAGE_TAG:=latest}"
 
