@@ -82,7 +82,7 @@ ENV PATH=$HADOOP_HOME/bin:$PATH
 
 COPY --from=build /build/hadoop-dist/target/hadoop-$HADOOP_VERSION $HADOOP_HOME
 COPY --from=build /build/jmx_prometheus_javaagent.jar $PROMETHEUS_JMX_EXPORTER
-COPY --from=build /build/gcs-connector-hadoop3-shaded.jar $HADOOP_HOME/share/hadoop/tools/lib/build/gcs-connector-hadoop3-shaded.jar
+COPY --from=build /build/gcs-connector-hadoop3-shaded.jar $HADOOP_HOME/share/hadoop/tools/lib/gcs-connector-hadoop3-shaded.jar
 WORKDIR $HADOOP_HOME
 
 # remove unnecessary doc/src files
