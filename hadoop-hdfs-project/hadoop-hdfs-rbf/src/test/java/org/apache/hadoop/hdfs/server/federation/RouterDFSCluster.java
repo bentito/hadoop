@@ -811,7 +811,7 @@ public class RouterDFSCluster {
         NamenodeStatusReport report = new NamenodeStatusReport(
             nn.nameserviceId, nn.namenodeId,
             nn.getRpcAddress(), nn.getServiceAddress(),
-            nn.getLifelineAddress(), nn.getWebAddress());
+            nn.getLifelineAddress(), "http", nn.getWebAddress());
         FSImage fsImage = nn.namenode.getNamesystem().getFSImage();
         NamespaceInfo nsInfo = fsImage.getStorage().getNamespaceInfo();
         report.setNamespaceInfo(nsInfo);
