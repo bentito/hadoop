@@ -186,7 +186,7 @@ class BlockPoolSlice {
                                                      .build();
     if (addReplicaThreadPool == null) {
       // initialize add replica fork join pool
-      initializeAddReplicaPool(conf);
+      initializeAddReplicaPool(conf, (FsDatasetImpl) volume.getDataset());
     }
     // Make the dfs usage to be saved during shutdown.
     shutdownHook = new Runnable() {
@@ -202,9 +202,9 @@ class BlockPoolSlice {
         SHUTDOWN_HOOK_PRIORITY);
   }
 
-  private synchronized void initializeAddReplicaPool(Configuration conf) {
+  private synchronized static void initializeAddReplicaPool(Configuration conf,
+      FsDatasetImpl dataset) {
     if (addReplicaThreadPool == null) {
-      FsDatasetImpl dataset = (FsDatasetImpl) volume.getDataset();
       int numberOfBlockPoolSlice = dataset.getVolumeCount()
           * dataset.getBPServiceCount();
       int poolsize = Math.max(numberOfBlockPoolSlice,
@@ -1043,5 +1043,16 @@ class BlockPoolSlice {
   @VisibleForTesting
   public static int getAddReplicaForkPoolSize() {
     return addReplicaThreadPool.getPoolSize();
+  }
+
+  @VisibleForTesting
+  public ForkJoinPool getAddReplicaThreadPool() {
+    return addReplicaThreadPool;
+  }
+
+  @VisibleForTesting
+  public static void reInitializeAddReplicaThreadPool() {
+    addReplicaThreadPool.shutdown();
+    addReplicaThreadPool = null;
   }
 }
