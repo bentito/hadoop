@@ -119,6 +119,8 @@ public class RouterDFSCluster {
   private int numDatanodesPerNameservice = 2;
   /** Custom storage type for each datanode. */
   private StorageType[][] storageTypes = null;
+  /** Racks for datanodes. */
+  private String[] racks = null;
 
   /** Mini cluster. */
   private MiniDFSCluster cluster;
@@ -607,6 +609,14 @@ public class RouterDFSCluster {
   }
 
   /**
+   * Set racks for each datanode. If racks is uninitialized or passed null then
+   * default is used.
+   */
+  public void setRacks(String[] racks) {
+    this.racks = racks;
+  }
+
+  /**
    * Set the DNs to belong to only one subcluster.
    */
   public void setIndependentDNs() {
@@ -746,6 +756,7 @@ public class RouterDFSCluster {
           .nnTopology(topology)
           .dataNodeConfOverlays(dnConfs)
           .storageTypes(storageTypes)
+          .racks(racks)
           .build();
       cluster.waitActive();
 
