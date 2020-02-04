@@ -218,8 +218,8 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
                   == null
                   ? ""
                   : app.getApplicationSubmissionContext()
-                      .getNodeLabelExpression());
-
+                      .getNodeLabelExpression())
+          .add("diagnostics", app.getDiagnostics());
       return summary;
     }
 
