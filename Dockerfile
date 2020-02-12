@@ -116,8 +116,13 @@ RUN sed -i '/networkaddress.cache.negative.ttl/d' $JAVA_HOME/lib/security/java.s
 RUN echo 'networkaddress.cache.ttl=0' >> $JAVA_HOME/lib/security/java.security
 RUN echo 'networkaddress.cache.negative.ttl=0' >> $JAVA_HOME/lib/security/java.security
 
+RUN useradd hadoop -m -u 1002 -d $HADOOP_HOME
+
 # imagebuilder expects the directory to be created before VOLUME
 RUN mkdir -p /hadoop/dfs/data /hadoop/dfs/name
+# to allow running as non-root
+RUN chown -R 1002:0 $HADOOP_HOME /hadoop $HADOOP_CONF_DIR /etc/passwd $JAVA_HOME/lib/security/cacerts && \
+    chmod -R 774 $HADOOP_HOME /hadoop $HADOOP_CONF_DIR /etc/passwd $JAVA_HOME/lib/security/cacerts
 
 VOLUME /hadoop/dfs/data /hadoop/dfs/name
 
@@ -126,5 +131,5 @@ USER 1002
 LABEL io.k8s.display-name="OpenShift Hadoop" \
       io.k8s.description="This is an image used by operator-metering to to install and run HDFS." \
       io.openshift.tags="openshift" \
-      maintainer="AOS Operator Metering <sd-operator-metering@redhat.com>"
+      maintainer="Chance Zibolski <czibolsk@redhat.com>"
 
