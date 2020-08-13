@@ -1,15 +1,14 @@
 #!/bin/bash -x
 
+set -euo pipefail
+
 # $1=OPENSHIFT_CI=true means running in CI
 if [[ "$1" == "true" ]]; then
-  yum -y install --setopt=skip_missing_names_on_install=False centos-release-scl
-  # cmake3
-  yum -y install --setopt=skip_missing_names_on_install=False epel-release
 
   yum -y install --setopt=skip_missing_names_on_install=False \
+      curl \
       java-1.8.0-openjdk-devel \
       java-1.8.0-openjdk \
-      rh-maven33 \
       protobuf protobuf-compiler \
       patch \
       git \
@@ -18,6 +17,13 @@ if [[ "$1" == "true" ]]; then
       && yum clean all \
       && rm -rf /var/cache/yum
 
+  pushd /tmp
+  curl -o maven.tgz https://downloads.apache.org/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
+  tar zxvf maven.tgz
+  export M2_HOME=/tmp/apache-maven-3.3.9
+  export PATH=${PATH}:${M2_HOME}/bin
+  popd
+
   ln -s /usr/bin/cmake3 /usr/bin/cmake
   export CMAKE_C_COMPILER=gcc CMAKE_CXX_COMPILER=g++
 
@@ -25,7 +31,7 @@ if [[ "$1" == "true" ]]; then
   cd /build && mvn -B -e -Dtest=false -DskipTests -Dmaven.javadoc.skip=true clean package -Pdist,native -Dtar
   # Install prometheus-jmx agent
   mvn dependency:get -Dartifact=io.prometheus.jmx:jmx_prometheus_javaagent:0.3.1:jar -Ddest=/build/jmx_prometheus_javaagent.jar
-  
+
   # Get gcs-connector for Hadoop
   cd /build && mvn dependency:get -Dartifact=com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.0.0-RC2:jar:shaded && mv $HOME/.m2/repository/com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.0.0-RC2/gcs-connector-hadoop3-2.0.0-RC2-shaded.jar /build/gcs-connector-hadoop3-2.0.0-RC2-shaded.jar
 else
