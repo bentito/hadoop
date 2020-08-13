@@ -1,56 +1,13 @@
-FROM rhel7:7-released AS build
-
-RUN yum -y update && yum clean all
-
-RUN yum -y install curl \
-    && yum clean all \
-    && rm -rf /var/cache/yum
+FROM registry.svc.ci.openshift.org/ocp/builder:rhel-8-base-openshift-4.6 AS build
 
 RUN mkdir /build
 COPY . /build
-
 WORKDIR /build
 
-ENV RH_HADOOP_PATCH_VERSION 00002
-ENV HADOOP_VERSION 3.1.1
+COPY opt_maven_install.sh /tmp/
+RUN chmod u+x /tmp/opt_maven_install.sh && /tmp/opt_maven_install.sh $OPENSHIFT_CI
 
-ENV HADOOP_RELEASE_URL http://download.eng.bos.redhat.com/brewroot/packages/org.apache.hadoop-hadoop-main/${HADOOP_VERSION}.redhat_${RH_HADOOP_PATCH_VERSION}/1/maven/org/apache/hadoop/hadoop-dist/${HADOOP_VERSION}.redhat-${RH_HADOOP_PATCH_VERSION}/hadoop-dist-${HADOOP_VERSION}.redhat-${RH_HADOOP_PATCH_VERSION}-bin.tar.gz
-ENV HADOOP_OUT /build/hadoop-dist/target/hadoop-$HADOOP_VERSION
-
-RUN curl -fSLs \
-    $HADOOP_RELEASE_URL \
-    -o /tmp/hadoop-dist-bin.tar.gz
-
-RUN mkdir -p $(dirname $HADOOP_OUT) && \
-    tar -xvf /tmp/hadoop-dist-bin.tar.gz -C /tmp \
-    && mv /tmp/hadoop-${HADOOP_VERSION}.redhat-${RH_HADOOP_PATCH_VERSION}/ \
-    $HADOOP_OUT
-
-ENV PROMETHEUS_JMX_EXPORTER_VERSION 0.3.1
-ENV RH_PROMETHEUS_JMX_EXPORTER_PATCH_VERSION 00006
-ENV RH_PROMETHEUS_JMX_EXPORTER_VERSION ${PROMETHEUS_JMX_EXPORTER_VERSION}.redhat-${RH_PROMETHEUS_JMX_EXPORTER_PATCH_VERSION}
-ENV RH_PROMETHEUS_JMX_EXPORTER_BREW_DIR ${PROMETHEUS_JMX_EXPORTER_VERSION}.redhat_${RH_PROMETHEUS_JMX_EXPORTER_PATCH_VERSION}
-ENV PROMETHEUS_JMX_EXPORTER_OUT /build/jmx_prometheus_javaagent.jar
-ARG PROMETHEUS_JMX_EXPORTER_URL=http://download.eng.bos.redhat.com/brewroot/packages/io.prometheus.jmx-parent/${RH_PROMETHEUS_JMX_EXPORTER_BREW_DIR}/1/maven/io/prometheus/jmx/jmx_prometheus_javaagent/${RH_PROMETHEUS_JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${RH_PROMETHEUS_JMX_EXPORTER_VERSION}.jar
-
-RUN set -x; curl -fSLs \
-    $PROMETHEUS_JMX_EXPORTER_URL \
-    -o $PROMETHEUS_JMX_EXPORTER_OUT
-
-ENV GOOGLE_BIGDATA_OSS_VERSION 1.9.17
-ENV RH_GOOGLE_BIGDATA_OSS_PATCH_VERSION 00002
-ENV RH_GOOGLE_BIGDATA_OSS_BREW_DIR ${GOOGLE_BIGDATA_OSS_VERSION}.redhat_${RH_GOOGLE_BIGDATA_OSS_PATCH_VERSION}
-ENV RH_GCS_CONNECTOR_PATCH_VERSION 00001
-ENV RH_GCS_CONNECTOR_VERSION ${GOOGLE_BIGDATA_OSS_VERSION}.hadoop3-redhat-${RH_GCS_CONNECTOR_PATCH_VERSION}
-ENV GCS_CONNECTOR_OUT /build/gcs-connector-hadoop3-shaded.jar
-
-ARG GCS_CONNECTOR_URL=http://download.eng.bos.redhat.com/brewroot/packages/com.google.cloud.bigdataoss-bigdataoss-parent/${RH_GOOGLE_BIGDATA_OSS_BREW_DIR}/1/maven/com/google/cloud/bigdataoss/gcs-connector/${RH_GCS_CONNECTOR_VERSION}/gcs-connector-${RH_GCS_CONNECTOR_VERSION}-shaded.jar
-
-RUN set -x; curl -fSLs \
-    $GCS_CONNECTOR_URL \
-    -o $GCS_CONNECTOR_OUT
-
-FROM rhel7:7-released
+FROM registry.svc.ci.openshift.org/ocp/builder:rhel-8-base-openshift-4.6 AS build
 
 RUN set -x; yum install --setopt=skip_missing_names_on_install=False -y \
         java-1.8.0-openjdk \
