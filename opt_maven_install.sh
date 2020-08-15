@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-set -euo pipefail
+set -eo pipefail
 
 # $1=OPENSHIFT_CI=true means running in CI
 if [[ "$1" == "true" ]]; then
@@ -35,6 +35,7 @@ if [[ "$1" == "true" ]]; then
   # Get gcs-connector for Hadoop
   cd /build && mvn dependency:get -Dartifact=com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.0.0-RC2:jar:shaded && mv $HOME/.m2/repository/com/google/cloud/bigdataoss/gcs-connector/hadoop3-2.0.0-RC2/gcs-connector-hadoop3-2.0.0-RC2-shaded.jar /build/gcs-connector-hadoop3-2.0.0-RC2-shaded.jar
 else
+  # Otherwise this is a production brew build by ART
   yum -y install curl \
     && yum clean all \
     && rm -rf /var/cache/yum
