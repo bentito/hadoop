@@ -36,7 +36,7 @@ ENV HADOOP_HOME=/opt/hadoop
 ENV HADOOP_LOG_DIR=$HADOOP_HOME/logs
 ENV HADOOP_CLASSPATH=$HADOOP_HOME/share/hadoop/tools/lib/*
 ENV HADOOP_CONF_DIR=/etc/hadoop
-ENV PROMETHEUS_JMX_EXPORTER /opt/jmx_exporter/jmx_exporter.jar
+ENV PROMETHEUS_JMX_EXPORTER=/opt/jmx_exporter/jmx_exporter.jar
 ENV PATH=$HADOOP_HOME/bin:$PATH
 
 COPY --from=build /build/hadoop-dist/target/hadoop-$HADOOP_VERSION $HADOOP_HOME
