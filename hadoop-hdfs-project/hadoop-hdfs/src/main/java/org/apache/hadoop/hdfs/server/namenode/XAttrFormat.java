@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.fs.XAttr;
+import org.apache.hadoop.hdfs.util.LongBitFormat;
 import org.apache.hadoop.hdfs.XAttrHelper;
 
 import com.google.common.base.Preconditions;
@@ -93,7 +94,7 @@ public enum XAttrFormat implements LongBitFormat.Enum {
 
   /**
    * Unpack byte[] to XAttrs.
-   * 
+   *
    * @param attrs the packed bytes of XAttrs
    * @return XAttrs list
    */
@@ -126,7 +127,7 @@ public enum XAttrFormat implements LongBitFormat.Enum {
   /**
    * Get XAttr by name with prefix.
    * Will unpack the byte[] until find the specific XAttr
-   * 
+   *
    * @param attrs the packed bytes of XAttrs
    * @param prefixedName the XAttr name with prefix
    * @return the XAttr
@@ -163,7 +164,7 @@ public enum XAttrFormat implements LongBitFormat.Enum {
 
   /**
    * Pack the XAttrs to byte[].
-   * 
+   *
    * @param xAttrs the XAttrs
    * @return the packed bytes
    */
