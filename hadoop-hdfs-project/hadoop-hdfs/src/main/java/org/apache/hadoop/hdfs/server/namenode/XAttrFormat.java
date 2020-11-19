@@ -27,6 +27,7 @@ import org.apache.hadoop.hdfs.XAttrHelper;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
+import org.apache.hadoop.hdfs.util.LongBitFormat;
 
 /**
  * Class to pack XAttrs into byte[].<br>
