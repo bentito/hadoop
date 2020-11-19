@@ -30,7 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.server.federation.resolver.PathLocation;
-import org.apache.hadoop.hdfs.server.federation.router.RBFConfigKeys;
 import org.apache.hadoop.hdfs.server.federation.router.Router;
 import org.apache.hadoop.hdfs.server.federation.router.RouterRpcServer;
 import org.apache.hadoop.hdfs.server.federation.store.MembershipStore;
@@ -56,18 +55,9 @@ public class LocalResolver extends RouterResolver<String, String> {
   private static final Logger LOG =
       LoggerFactory.getLogger(LocalResolver.class);
 
-  /** Configuration key to set the minimum time to update the local cache.*/
-  public static final String MIN_UPDATE_PERIOD_KEY =
-      RBFConfigKeys.FEDERATION_ROUTER_PREFIX + "local-resolver.update-period";
-  /** 10 seconds by default. */
-  private static final long MIN_UPDATE_PERIOD_DEFAULT =
-      TimeUnit.SECONDS.toMillis(10);
-
-
-  /** Router service. */
-  private final Router router;
-  /** Minimum update time. */
-  private final long minUpdateTime;
+  public LocalResolver(final Configuration conf, final Router routerService) {
+    super(conf, routerService);
+  }
 
   /**
    * Get the mapping from nodes to subcluster. It gets this mapping from the
