@@ -195,30 +195,6 @@ public class TestYARNTokenIdentifier {
   }
 
   @Test
-  public void testContainerTokenIdentifierProtoMissingFields()
-      throws IOException {
-    ContainerTokenIdentifierProto.Builder builder =
-        ContainerTokenIdentifierProto.newBuilder();
-    ContainerTokenIdentifierProto proto = builder.build();
-    Assert.assertFalse(proto.hasContainerType());
-    Assert.assertFalse(proto.hasExecutionType());
-    Assert.assertFalse(proto.hasNodeLabelExpression());
-
-    byte[] tokenData = proto.toByteArray();
-    DataInputBuffer dib = new DataInputBuffer();
-    dib.reset(tokenData, tokenData.length);
-    ContainerTokenIdentifier tid = new ContainerTokenIdentifier();
-    tid.readFields(dib);
-
-    Assert.assertEquals("container type",
-        ContainerType.TASK, tid.getContainerType());
-    Assert.assertEquals("execution type",
-        ExecutionType.GUARANTEED, tid.getExecutionType());
-    Assert.assertEquals("node label expression",
-        CommonNodeLabelsManager.NO_LABEL, tid.getNodeLabelExpression());
-  }
-
-  @Test
   public void testContainerTokenIdentifier() throws IOException {
     testContainerTokenIdentifier(false, false);
   }
