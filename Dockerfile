@@ -90,12 +90,8 @@ COPY hadoop-build-tools /build/hadoop-build-tools
 COPY dev-support /build/dev-support
 COPY pom.xml /build/pom.xml
 COPY LICENSE.txt /build/LICENSE.txt
-COPY licenses /build/licenses
-COPY LICENSE-binary /build/LICENSE-binary
-COPY licenses-binary /build/licenses-binary
 COPY BUILDING.txt /build/BUILDING.txt
 COPY NOTICE.txt /build/NOTICE.txt
-COPY NOTICE-binary /build/NOTICE-binary
 COPY README.txt /build/README.txt
 
 # build hadoop
