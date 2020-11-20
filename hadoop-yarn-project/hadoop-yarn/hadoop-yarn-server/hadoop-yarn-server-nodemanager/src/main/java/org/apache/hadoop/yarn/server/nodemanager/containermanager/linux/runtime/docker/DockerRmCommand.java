@@ -51,14 +51,4 @@ public class DockerRmCommand extends DockerCommand {
     dockerOp.appendArgs(containerName);
     return dockerOp;
   }
-
-  @Override
-  public PrivilegedOperation preparePrivilegedOperation(
-      DockerCommand dockerCommand, String containerName, Map<String,
-      String> env, Configuration conf, Context nmContext) {
-    PrivilegedOperation dockerOp = new PrivilegedOperation(
-        PrivilegedOperation.OperationType.REMOVE_DOCKER_CONTAINER);
-    dockerOp.appendArgs(containerName);
-    return dockerOp;
-  }
 }
