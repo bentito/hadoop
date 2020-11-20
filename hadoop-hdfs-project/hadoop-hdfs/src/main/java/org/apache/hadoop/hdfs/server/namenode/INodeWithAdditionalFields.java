@@ -37,8 +37,8 @@ public abstract class INodeWithAdditionalFields extends INode
   // incompatible.
   enum PermissionStatusFormat implements LongBitFormat.Enum {
     MODE(null, 16),
-    GROUP(MODE.BITS, 25),
-    USER(GROUP.BITS, 23);
+    GROUP(MODE.BITS, 24),
+    USER(GROUP.BITS, 24);
 
     final LongBitFormat BITS;
 
