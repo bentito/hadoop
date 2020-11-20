@@ -47,7 +47,7 @@ RUN cmake3 --version
 ######
 RUN mkdir -p /opt/protobuf-src \
     && curl -L -s -S \
-      https://github.com/protocolbuffers/protobuf/releases/download/v2.5.0/protobuf-java-2.5.0.tar.gz \
+      https://github.com/protocolbuffers/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz \
       -o /opt/protobuf.tar.gz \
     && tar xzf /opt/protobuf.tar.gz --no-same-owner --strip-components 1 -C /opt/protobuf-src \
     && cd /opt/protobuf-src \
