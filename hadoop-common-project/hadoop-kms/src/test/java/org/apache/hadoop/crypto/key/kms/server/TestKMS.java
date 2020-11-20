@@ -145,10 +145,47 @@ public class TestKMS {
   }
 
   public static abstract class KMSCallable<T> implements Callable<T> {
-    private URL kmsUrl;
+    private List<URL> kmsUrl;
 
     protected URL getKMSUrl() {
-      return kmsUrl;
+      return kmsUrl.get(0);
+    }
+
+    protected URL[] getKMSHAUrl() {
+      URL[] urls = new URL[kmsUrl.size()];
+      return kmsUrl.toArray(urls);
+    }
+
+    protected void addKMSUrl(URL url) {
+      if (kmsUrl == null) {
+        kmsUrl = new ArrayList<URL>();
+      }
+      kmsUrl.add(url);
+    }
+
+    /*
+     * The format of the returned value will be
+     * kms://http:kms1.example1.com:port1,kms://http:kms2.example2.com:port2
+     */
+    protected String generateLoadBalancingKeyProviderUriString() {
+      if (kmsUrl == null || kmsUrl.size() == 0) {
+        return null;
+      }
+      StringBuffer sb = new StringBuffer();
+
+      for (int i = 0; i < kmsUrl.size(); i++) {
+        sb.append(KMSClientProvider.SCHEME_NAME + "://" +
+            kmsUrl.get(0).getProtocol() + "@");
+        URL url = kmsUrl.get(i);
+        sb.append(url.getAuthority());
+        if (url.getPath() != null) {
+          sb.append(url.getPath());
+        }
+        if (i < kmsUrl.size() - 1) {
+          sb.append(",");
+        }
+      }
+      return sb.toString();
     }
   }
 
@@ -194,6 +231,11 @@ public class TestKMS {
 
   protected <T> T runServer(int port, String keystore, String password, File confDir,
       KMSCallable<T> callable) throws Exception {
+    return runServer(new int[] {port}, keystore, password, confDir, callable);
+  }
+
+  protected <T> T runServer(int[] ports, String keystore, String password,
+      File confDir, KMSCallable<T> callable) throws Exception {
     MiniKMS.Builder miniKMSBuilder = new MiniKMS.Builder().setKmsConfDir(confDir)
         .setLog4jConfFile("log4j.properties");
     if (keystore != null) {
@@ -211,14 +253,12 @@ public class TestKMS {
       LOG.info("Test KMS running at: " + miniKMS.getKMSUrl());
       callable.addKMSUrl(miniKMS.getKMSUrl());
     }
-    MiniKMS miniKMS = miniKMSBuilder.build();
-    miniKMS.start();
     try {
-      System.out.println("Test KMS running at: " + miniKMS.getKMSUrl());
-      callable.kmsUrl = miniKMS.getKMSUrl();
       return callable.call();
     } finally {
-      miniKMS.stop();
+      for (MiniKMS miniKMS: kmsList) {
+        miniKMS.stop();
+      }
     }
   }
 
@@ -2052,7 +2092,6 @@ public class TestKMS {
             return null;
           }
         });
-
         nonKerberosUgi.addCredentials(credentials);
 
         try {
@@ -2156,6 +2195,10 @@ public class TestKMS {
           @Override
           public Void run() throws Exception {
             KeyProvider kp = createProvider(uri, clientConf);
+            // Unset the conf value for key provider path just to be sure that
+            // the key provider created for renew and cancel token is from
+            // token service field.
+            clientConf.unset(HADOOP_SECURITY_KEY_PROVIDER_PATH);
             // test delegation token retrieval
             KeyProviderDelegationTokenExtension kpdte =
                 KeyProviderDelegationTokenExtension.
@@ -2308,6 +2351,7 @@ public class TestKMS {
             // Get a DT and use it.
             final Credentials credentials = new Credentials();
             kpdte.addDelegationTokens("client", credentials);
+            Text tokenService = getTokenService(kp);
             Assert.assertEquals(1, credentials.getAllTokens().size());
             Assert.assertEquals(KMSDelegationToken.TOKEN_KIND, credentials.
                 getToken(tokenService).getKind());
@@ -2460,34 +2504,11 @@ public class TestKMS {
 
       writeConf(testDir, conf);
 
-      KMSCallable<KeyProvider> c =
-          new KMSCallable<KeyProvider>() {
-        @Override
-        public KeyProvider call() throws Exception {
-          final Configuration conf = new Configuration();
-          conf.setInt(KeyProvider.DEFAULT_BITLENGTH_NAME, 128);
-          final URI uri = createKMSUri(getKMSUrl());
-
-          final KeyProvider kp =
-              doAs("SET_KEY_MATERIAL",
-                  new PrivilegedExceptionAction<KeyProvider>() {
-                    @Override
-                    public KeyProvider run() throws Exception {
-                      KeyProvider kp = createProvider(uri, conf);
-                          kp.createKey("k1", new byte[16],
-                              new KeyProvider.Options(conf));
-                          kp.createKey("k2", new byte[16],
-                              new KeyProvider.Options(conf));
-                          kp.createKey("k3", new byte[16],
-                              new KeyProvider.Options(conf));
-                      return kp;
-                    }
-                  });
-          return kp;
-        }
-      };
-
-      runServer(null, null, testDir, c);
+      int[] ports = new int[kmsSize];
+      for (int i = 0; i < ports.length; i++) {
+        ports[i] = -1;
+      }
+      return runServer(ports, null, null, testDir, callable);
     } finally {
       if (zkServer != null) {
         zkServer.stop();
