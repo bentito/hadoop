@@ -68,12 +68,13 @@ RUN set -x; yum install --setopt=skip_missing_names_on_install=False -y \
         net-tools \
         bind-utils \
         which \
-        jq \
         rsync \
         openssl \
-        faq \
     && yum clean all \
     && rm -rf /tmp/* /var/tmp/*
+
+RUN curl -Lo /usr/local/bin/faq https://github.com/jzelinskie/faq/releases/download/0.0.6/faq-$(uname)-amd64
+RUN chmod +x /usr/local/bin/faq
 
 ENV TINI_VERSION v0.18.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
